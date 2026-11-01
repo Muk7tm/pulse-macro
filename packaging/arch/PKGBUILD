@@ -1,0 +1,52 @@
+# Maintainer: Pulse contributors
+# Builds from a local checkout: run `makepkg -si` from packaging/arch.
+pkgname=pulse-macro
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Low-overhead X11 auto-clicker and macro engine with XTest and uinput backends"
+arch=('x86_64')
+url="https://example.invalid/pulse"
+license=('MIT')
+depends=('glibc' 'gcc-libs' 'libxkbcommon' 'fontconfig' 'freetype2' 'libx11' 'libxcb')
+makedepends=('cargo')
+optdepends=('xorg-server-xvfb: run the X11 integration tests')
+install=pulse.install
+source=()
+sha256sums=()
+
+_root() { realpath "$startdir/../.."; }
+
+prepare() {
+    cd "$(_root)"
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$(_root)"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR="$srcdir/target"
+    # Portable build: no -C target-cpu=native in packages.
+    cargo build --frozen --release --workspace
+}
+
+check() {
+    cd "$(_root)"
+    export CARGO_TARGET_DIR="$srcdir/target"
+    cargo test --frozen --release --workspace --exclude pulse-ui
+}
+
+package() {
+    cd "$(_root)"
+    local t="$srcdir/target/release"
+    install -Dm755 "$t/pulse-engine" "$pkgdir/usr/bin/pulse-engine"
+    install -Dm755 "$t/pulse-cli" "$pkgdir/usr/bin/pulse-cli"
+    install -Dm755 "$t/pulse-ui" "$pkgdir/usr/bin/pulse-ui"
+    install -Dm755 "$t/pulse-bench" "$pkgdir/usr/bin/pulse-bench"
+    install -Dm755 "$t/pulse-test-receiver" "$pkgdir/usr/bin/pulse-test-receiver"
+    install -Dm644 packaging/systemd/pulse-engine.service "$pkgdir/usr/lib/systemd/user/pulse-engine.service"
+    install -Dm644 packaging/desktop/pulse.desktop "$pkgdir/usr/share/applications/pulse.desktop"
+    install -Dm644 packaging/udev/90-pulse-uinput.rules.example "$pkgdir/usr/share/doc/pulse/90-pulse-uinput.rules.example"
+    install -Dm644 configs/example.toml "$pkgdir/usr/share/doc/pulse/config.example.toml"
+    install -Dm644 README.md docs/*.md -t "$pkgdir/usr/share/doc/pulse/"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

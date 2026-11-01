@@ -1,0 +1,44 @@
+# Cargo build output (many gigabytes; rebuilt by `cargo build`).
+/target/
+
+# Cargo.lock is deliberately committed: Pulse ships binaries, so every build
+# uses the exact dependency versions that were tested.
+
+# rustfmt backups and patch leftovers
+**/*.rs.bk
+*.orig
+*.rej
+
+# Benchmark scratch files. Curated results in benchmarks/raw/<date>/ are kept.
+/benchmarks/raw/*/tmp-*
+
+# Arch package build output (`makepkg` in packaging/arch/)
+/packaging/arch/src/
+/packaging/arch/pkg/
+/packaging/arch/*.pkg.tar*
+
+# Profiling output
+perf.data*
+*.profraw
+*.profdata
+flamegraph*.svg
+
+# Logs
+*.log
+
+# Local environment files
+.env
+.env.*
+
+# Editors and file managers
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.directory
+.DS_Store
+
+# Claude Code personal settings (a shared .claude/settings.json may be committed)
+.claude/settings.local.json
+CLAUDE.local.md

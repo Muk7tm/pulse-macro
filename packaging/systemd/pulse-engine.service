@@ -1,0 +1,35 @@
+# systemd *user* unit for the Pulse engine. Opt-in:
+#   install -Dm644 pulse-engine.service ~/.config/systemd/user/pulse-engine.service
+#   systemctl --user import-environment DISPLAY XAUTHORITY
+#   systemctl --user enable --now pulse-engine.service
+#
+# The engine never resumes clicking after a restart: it starts ready and waits
+# for the hotkey.
+[Unit]
+Description=Pulse input macro engine (headless)
+Documentation=file:///usr/share/doc/pulse/README.md
+# The X11 session must be up; DISPLAY/XAUTHORITY come from the user manager.
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/pulse-engine
+Restart=on-failure
+RestartSec=2
+# Exit code 2 means "another engine is already running": do not restart.
+RestartPreventExitStatus=2 64
+# Normal scheduling only: no realtime priority, no CPU pinning.
+Nice=0
+# Hardening that works in user units without mount namespaces and does not
+# interfere with X11 or /dev/uinput. (ProtectSystem=/ProtectHome=/PrivateTmp=
+# need user namespaces in user units and are deliberately not used.)
+NoNewPrivileges=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=graphical-session.target

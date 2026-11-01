@@ -1,0 +1,44 @@
+// Pulse design tokens: dark graphite surfaces, one teal accent,
+// an 8 px spacing grid and uniform control heights.
+
+export global Theme {
+    // Colors
+    out property <color> bg: #111827;
+    out property <color> surface: #1F2937;
+    out property <color> elevated: #263244;
+    out property <color> elevated-hover: #2E3B50;
+    out property <color> border: #334155;
+    out property <color> border-strong: #475569;
+    out property <color> text: #F8FAFC;
+    out property <color> text-secondary: #94A3B8;
+    out property <color> text-muted: #64748B;
+    out property <color> accent: #0D9488;
+    out property <color> accent-hover: #0F766E;
+    out property <color> accent-bright: #5EEAD4;
+    out property <color> danger: #DC2626;
+    out property <color> danger-hover: #B91C1C;
+    out property <color> error: #EF4444;
+    out property <color> warning: #F59E0B;
+    out property <color> success: #34D399;
+    out property <color> focus-ring: #5EEAD4;
+
+    // Spacing, shape and sizes
+    out property <length> gap-xs: 4px;
+    out property <length> gap-s: 8px;
+    out property <length> gap-m: 12px;
+    out property <length> gap-l: 16px;
+    out property <length> radius-s: 6px;
+    out property <length> radius-m: 10px;
+    out property <length> control-height: 32px;
+    out property <length> label-width: 96px;
+    out property <length> card-padding: 14px;
+
+    // Typography
+    out property <length> font-caption: 12px;
+    out property <length> font-body: 13px;
+    out property <length> font-strong: 14px;
+    out property <length> font-title: 17px;
+
+    // Transitions only, never continuous animation.
+    out property <duration> quick: 120ms;
+}

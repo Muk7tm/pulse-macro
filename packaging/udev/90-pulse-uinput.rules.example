@@ -1,0 +1,19 @@
+# Example only — install deliberately and review the security implications.
+#
+# Grants members of the dedicated `pulse-uinput` group write access to
+# /dev/uinput so Pulse's uinput backend can create virtual input devices.
+# ANY member of this group can synthesize system-wide keyboard and mouse
+# input. Do not use MODE="0666", and do not add users to the broad `input`
+# group for this purpose: that group can also read physical keyboards.
+#
+# Setup (as root):
+#   groupadd --system pulse-uinput
+#   usermod -aG pulse-uinput <your-user>
+#   install -Dm644 90-pulse-uinput.rules.example /etc/udev/rules.d/90-pulse-uinput.rules
+#   echo uinput > /etc/modules-load.d/pulse-uinput.conf   # load the module at boot
+#   udevadm control --reload && udevadm trigger --name-match=uinput
+# Then log out and back in so the new group membership applies.
+#
+# Many desktops already grant the logged-in user an ACL on /dev/uinput
+# (e.g. Steam's uaccess rule); check with `getfacl /dev/uinput` first.
+KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="pulse-uinput", MODE="0660", OPTIONS+="static_node=uinput"

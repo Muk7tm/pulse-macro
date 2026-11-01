@@ -1,0 +1,97 @@
+// State shared between Rust and the window. Rust owns all logic; the
+// .slint side only displays these values and reports user actions.
+
+import { Tone } from "components.slint";
+
+export global Ui {
+    in property <string> version;
+    in property <bool> connected;
+    // Running or stopping: settings are locked.
+    in property <bool> running;
+
+    // Header
+    in property <string> pill-text: "Connecting…";
+    in property <Tone> pill-tone: Tone.neutral;
+
+    // Main card. When `problem` is set it replaces the start button.
+    in property <string> problem;
+    in property <string> problem-detail;
+    in property <string> problem-action;
+    in property <bool> problem-busy;
+    in property <string> button-text: "Start";
+    in property <bool> button-enabled;
+    in property <bool> button-danger;
+    in property <string> hint;
+    in property <Tone> hint-tone: Tone.neutral;
+    in property <string> detail;
+    in property <string> toast;
+    in property <Tone> toast-tone: Tone.warning;
+
+    in-out property <bool> more-open;
+}
+
+export global Form {
+    // Locked while clicking or disconnected.
+    in property <bool> editable;
+
+    in-out property <int> click-index;
+    in-out property <string> key-name: "E";
+    in-out property <int> key-index;
+    in property <[string]> key-names;
+    in-out property <int> interval-ms: 100;
+    in property <string> cps-text;
+    in-out property <int> hold-ms: 20;
+    in-out property <int> mode-index;
+    in-out property <string> hotkey: "F6";
+    in property <int> hotkey-index;
+    in property <string> emergency: "F8";
+    in-out property <int> count;
+    in-out property <int> duration-s;
+    in-out property <bool> advanced;
+    in-out property <bool> require-focus: true;
+
+    // Inline messages (empty = none).
+    in property <string> err-click;
+    in property <string> err-key;
+    in property <string> warn-key;
+    in property <string> err-speed;
+    in property <string> warn-speed;
+    in property <string> err-hold;
+    in property <string> err-hotkey;
+    in property <string> err-count;
+    in property <string> err-duration;
+    in property <string> err-general;
+
+    // Game window
+    in property <string> window-name;
+    in property <string> window-state;
+    in property <Tone> window-tone: Tone.neutral;
+    in property <string> window-note;
+    in property <Tone> window-note-tone: Tone.neutral;
+    in property <string> pick-text: "Pick window";
+    in property <bool> picking;
+
+    // Input method (More options)
+    in property <[string]> backend-names: ["Standard (X11)", "Virtual device (uinput)"];
+    in-out property <int> backend-index;
+    in property <string> backend-status;
+    in property <Tone> backend-tone: Tone.neutral;
+    in property <string> backend-help;
+    in property <bool> backend-can-switch;
+    in property <bool> backend-busy;
+}
+
+export global Actions {
+    callback main-button();
+    callback problem-action();
+    callback form-changed();
+    callback key-captured(string);
+    callback key-chosen(string);
+    callback hotkey-captured(string);
+    callback hotkey-chosen(string);
+    callback pick-window();
+    callback more-toggled();
+    callback backend-chosen(int);
+    callback backend-switch();
+    callback quit-pulse();
+}

@@ -1,0 +1,20 @@
+{
+  "benchmark": "process",
+  "cpu_percent_of_one_core": 0.03333319696500233,
+  "cpu_resolution_s": 0.01,
+  "cpu_s": 0.01,
+  "environment": {
+    "build": "release",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11400F @ 2.60GHz",
+    "governor": "performance",
+    "kernel": "7.2.11-zen1-1-zen",
+    "nproc": 12,
+    "session": "x11"
+  },
+  "involuntary_switches_per_s": 0.0,
+  "note": "voluntary context switches across all engine threads approximate wakeups; CPU time has clock-tick resolution",
+  "pid": 18185,
+  "rss_kib": "3836",
+  "voluntary_switches_per_s": 39.9998363580028,
+  "wall_s": 30.000122732
+}

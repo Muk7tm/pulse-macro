@@ -1,0 +1,355 @@
+{
+  "protocol_version": 2,
+  "request_id": "c1",
+  "ok": true,
+  "state": "ready",
+  "active_backend": "xtest",
+  "data": {
+    "kind": "diagnostics",
+    "value": {
+      "histograms": [
+        {
+          "name": "wake_jitter",
+          "description": "timer wakeup minus absolute deadline",
+          "count": 3100,
+          "p50_us": 144.0,
+          "p95_us": 144.0,
+          "p99_us": 144.0,
+          "max_us": 148.06,
+          "mean_us": 95.37794645161291,
+          "buckets": [
+            [
+              3.0,
+              3
+            ],
+            [
+              4.0,
+              103
+            ],
+            [
+              5.0,
+              27
+            ],
+            [
+              6.0,
+              133
+            ],
+            [
+              7.0,
+              40
+            ],
+            [
+              8.0,
+              37
+            ],
+            [
+              9.0,
+              26
+            ],
+            [
+              10.0,
+              27
+            ],
+            [
+              11.0,
+              6
+            ],
+            [
+              12.0,
+              16
+            ],
+            [
+              13.0,
+              4
+            ],
+            [
+              14.0,
+              5
+            ],
+            [
+              15.0,
+              4
+            ],
+            [
+              16.0,
+              3
+            ],
+            [
+              18.0,
+              6
+            ],
+            [
+              20.0,
+              4
+            ],
+            [
+              22.0,
+              3
+            ],
+            [
+              24.0,
+              6
+            ],
+            [
+              26.0,
+              2
+            ],
+            [
+              28.0,
+              3
+            ],
+            [
+              32.0,
+              2
+            ],
+            [
+              36.0,
+              13
+            ],
+            [
+              40.0,
+              79
+            ],
+            [
+              44.0,
+              72
+            ],
+            [
+              48.0,
+              33
+            ],
+            [
+              52.0,
+              32
+            ],
+            [
+              56.0,
+              22
+            ],
+            [
+              60.0,
+              28
+            ],
+            [
+              64.0,
+              20
+            ],
+            [
+              72.0,
+              188
+            ],
+            [
+              80.0,
+              271
+            ],
+            [
+              88.0,
+              126
+            ],
+            [
+              96.0,
+              64
+            ],
+            [
+              104.0,
+              20
+            ],
+            [
+              112.0,
+              12
+            ],
+            [
+              120.0,
+              7
+            ],
+            [
+              128.0,
+              17
+            ],
+            [
+              144.0,
+              1624
+            ],
+            [
+              160.0,
+              12
+            ]
+          ]
+        },
+        {
+          "name": "trigger_latency",
+          "description": "hotkey received by engine to first event submitted",
+          "count": 0,
+          "p50_us": 0.0,
+          "p95_us": 0.0,
+          "p99_us": 0.0,
+          "max_us": 0.0,
+          "mean_us": 0.0,
+          "buckets": []
+        },
+        {
+          "name": "emit_duration",
+          "description": "time inside the backend submit call per batch",
+          "count": 3101,
+          "p50_us": 5.0,
+          "p95_us": 8.0,
+          "p99_us": 13.0,
+          "max_us": 44.153,
+          "mean_us": 5.020023863269913,
+          "buckets": [
+            [
+              3.0,
+              3
+            ],
+            [
+              4.0,
+              40
+            ],
+            [
+              5.0,
+              2578
+            ],
+            [
+              6.0,
+              263
+            ],
+            [
+              7.0,
+              27
+            ],
+            [
+              8.0,
+              40
+            ],
+            [
+              9.0,
+              27
+            ],
+            [
+              10.0,
+              30
+            ],
+            [
+              11.0,
+              22
+            ],
+            [
+              12.0,
+              34
+            ],
+            [
+              13.0,
+              9
+            ],
+            [
+              14.0,
+              5
+            ],
+            [
+              15.0,
+              7
+            ],
+            [
+              16.0,
+              3
+            ],
+            [
+              18.0,
+              3
+            ],
+            [
+              22.0,
+              1
+            ],
+            [
+              24.0,
+              3
+            ],
+            [
+              26.0,
+              2
+            ],
+            [
+              28.0,
+              1
+            ],
+            [
+              30.0,
+              1
+            ],
+            [
+              44.0,
+              1
+            ],
+            [
+              48.0,
+              1
+            ]
+          ]
+        },
+        {
+          "name": "stop_latency",
+          "description": "stop requested to all releases submitted",
+          "count": 1,
+          "p50_us": 47.062,
+          "p95_us": 47.062,
+          "p99_us": 47.062,
+          "max_us": 47.062,
+          "mean_us": 47.062,
+          "buckets": [
+            [
+              48.0,
+              1
+            ]
+          ]
+        }
+      ],
+      "faults": [],
+      "process": {
+        "pid": 18216,
+        "rss_kib": 3840,
+        "cpu_user_s": 0.0,
+        "cpu_system_s": 0.02,
+        "threads": 2,
+        "voluntary_ctx_switches": 3113,
+        "involuntary_ctx_switches": 0
+      },
+      "session": {
+        "display": ":97",
+        "xdg_session_type": "x11",
+        "native_x11": true,
+        "xwayland": false,
+        "xtest": true,
+        "xinput2": true,
+        "vendor": "The X.Org Foundation"
+      },
+      "backends": [
+        {
+          "kind": "xtest",
+          "label": "XTest (X11)",
+          "description": "Sends clicks through the X11 XTEST extension. Recommended; needs no device permissions.",
+          "availability": "ready",
+          "detail": "XTEST 2.2 on :97 (evdev keycodes, 116 keys mapped)",
+          "remediation": null,
+          "desired": true,
+          "active": true
+        },
+        {
+          "kind": "uinput",
+          "label": "uinput (Virtual Device)",
+          "description": "Creates a Linux virtual keyboard and mouse. Try it if a game ignores the standard method; needs /dev/uinput access.",
+          "availability": "ready",
+          "detail": "/dev/uinput is writable by this user",
+          "remediation": null,
+          "desired": false,
+          "active": false
+        }
+      ],
+      "keymap": "X11Keymap { mode: Evdev, min_keycode: 8, max_keycode: 255, mapped: 116 }",
+      "synthetic_devices": [
+        "Virtual core XTEST pointer",
+        "Virtual core XTEST keyboard"
+      ]
+    }
+  }
+}

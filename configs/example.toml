@@ -1,0 +1,32 @@
+# Pulse configuration — $XDG_CONFIG_HOME/pulse-macro/config.toml
+# All values shown are the defaults. Pulse rejects unknown keys and schema
+# versions it does not understand rather than ignoring them.
+schema_version = 2
+
+[engine]
+backend = "xtest"                # input method: "xtest" (X11) or "uinput" (virtual device)
+allow_advanced_rates = false     # true permits intervals below 10 ms (down to 1 ms)
+stop_on_suspend = true
+
+[clicker]
+input = "mouse"                  # "mouse" repeats mouse_button, "key" repeats key
+mouse_button = "left"            # "left", "right" or "middle"
+key = "E"                        # any key name, e.g. "E", "Space", "F", "1"
+interval_ms = 100                # time between presses (100 ms = 10 clicks per second)
+hold_ms = 20                     # press-to-release time, shorter than the interval
+activation_mode = "toggle"       # "toggle": press to start/stop; "hold": clicks while held
+activation_hotkey = "F6"
+emergency_stop_hotkey = "F8"     # always active
+count = 0                        # stop after N clicks; 0 = until stopped
+duration_ms = 0                  # stop after N ms; 0 = no time limit
+
+[target]
+require_focus = true             # click only while the selected game window is in front
+window_class = ""                # set by "Pick window"; never hardcoded
+window_title_pattern = ""
+
+[ui]
+renderer = "auto"                # "auto", "software" or "femtovg"
+
+[diagnostics]
+log_level = "warn"               # error | warn | info | debug | trace

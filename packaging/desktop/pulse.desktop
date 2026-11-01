@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Pulse
+GenericName=Auto-clicker and macro tool
+Comment=Configure and control the Pulse X11 macro engine
+Exec=pulse-ui
+Icon=input-mouse
+Terminal=false
+Categories=Utility;
+Keywords=autoclicker;macro;clicker;input;
+StartupNotify=true

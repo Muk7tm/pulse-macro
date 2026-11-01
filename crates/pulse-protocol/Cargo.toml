@@ -1,0 +1,17 @@
+[package]
+name = "pulse-protocol"
+description = "Versioned, length-delimited JSON control protocol between Pulse clients and the engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+pulse-core.workspace = true
+pulse-config.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

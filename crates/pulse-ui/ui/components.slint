@@ -1,0 +1,756 @@
+// Reusable Pulse controls, styled from the theme tokens so every control
+// looks the same. Every interactive element is keyboard focusable (Tab),
+// shows a focus ring, and conveys state with text or a glyph, never with
+// colour alone.
+
+import { ListView, SpinBox } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+
+export enum Tone { neutral, accent, success, warning, error }
+
+export enum ButtonKind { primary, secondary, danger, ghost }
+
+export global ToneColor {
+    public pure function of(t: Tone) -> color {
+        return t == Tone.accent ? Theme.accent-bright
+            : t == Tone.success ? Theme.success
+            : t == Tone.warning ? Theme.warning
+            : t == Tone.error ? Theme.error
+            : Theme.text-secondary;
+    }
+}
+
+// Drawn 3 px outside its owner; the owner sets width/height to its own
+// size + 6 px.
+component FocusRing inherits Rectangle {
+    in property <bool> shown;
+    in property <length> radius;
+    x: -3px;
+    y: -3px;
+    border-radius: root.radius + 3px;
+    border-width: root.shown ? 2px : 0px;
+    border-color: Theme.focus-ring;
+}
+
+export component PButton inherits Rectangle {
+    in property <string> text;
+    in property <ButtonKind> kind: ButtonKind.secondary;
+    in property <bool> enabled: true;
+    in property <bool> big;
+    callback clicked();
+
+    min-width: max(root.big ? 120px : 64px, label.preferred-width + (root.big ? 32px : 24px));
+    height: root.big ? 44px : Theme.control-height;
+    horizontal-stretch: 0;
+    vertical-stretch: 0;
+    border-radius: root.big ? Theme.radius-m : Theme.radius-s;
+    accessible-role: AccessibleRole.button;
+    accessible-label: root.text;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        if (root.enabled) {
+            root.clicked();
+        }
+    }
+
+    property <color> base: root.kind == ButtonKind.primary ? Theme.accent
+        : root.kind == ButtonKind.danger ? Theme.danger
+        : root.kind == ButtonKind.ghost ? transparent
+        : Theme.elevated;
+    property <color> hover: root.kind == ButtonKind.primary ? Theme.accent-hover
+        : root.kind == ButtonKind.danger ? Theme.danger-hover
+        : Theme.elevated-hover;
+    background: !root.enabled ? (root.kind == ButtonKind.ghost ? transparent : Theme.elevated.darker(0.2))
+        : touch.pressed ? root.hover.darker(0.15)
+        : touch.has-hover ? root.hover : root.base;
+    border-width: root.kind == ButtonKind.secondary || (!root.enabled && root.kind != ButtonKind.ghost) ? 1px : 0px;
+    border-color: Theme.border;
+    animate background { duration: Theme.quick; }
+
+    label := Text {
+        text: root.text;
+        color: !root.enabled ? Theme.text-muted
+            : root.kind == ButtonKind.ghost ? Theme.text-secondary : Theme.text;
+        font-size: root.big ? 15px : Theme.font-body;
+        font-weight: root.kind == ButtonKind.primary || root.kind == ButtonKind.danger ? 600 : 500;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    // Focus rings show for keyboard (Tab) focus only, not after clicks.
+    property <bool> keyboard-focus;
+    focus := FocusScope {
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.keyboard-focus = false;
+        }
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == "\n") {
+                root.clicked();
+                return accept;
+            }
+            return reject;
+        }
+        touch := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? pointer : default;
+            clicked => {
+                focus.focus();
+                root.clicked();
+            }
+        }
+    }
+
+    FocusRing {
+        width: root.width + 6px;
+        height: root.height + 6px;
+        shown: focus.has-focus && root.keyboard-focus;
+        radius: root.border-radius;
+    }
+}
+
+// A section card with a small uppercase heading.
+export component Card inherits Rectangle {
+    in property <string> title;
+    background: Theme.surface;
+    border-radius: Theme.radius-m;
+    border-width: 1px;
+    border-color: Theme.border;
+
+    VerticalLayout {
+        padding: 12px;
+        padding-left: Theme.card-padding;
+        padding-right: Theme.card-padding;
+        spacing: Theme.gap-s;
+        alignment: start;
+        if root.title != "": Text {
+            text: root.title;
+            color: Theme.text-muted;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+        }
+        @children
+    }
+}
+
+// Status pill: glyph + text.
+export component StatusPill inherits Rectangle {
+    in property <string> text;
+    in property <Tone> tone: Tone.neutral;
+    property <color> fg: ToneColor.of(root.tone);
+    property <string> glyph: root.tone == Tone.accent ? "▶"
+        : root.tone == Tone.success ? "●"
+        : root.tone == Tone.warning ? "▲"
+        : root.tone == Tone.error ? "✕" : "○";
+    height: 26px;
+    width: row.preferred-width;
+    border-radius: 13px;
+    background: root.fg.with-alpha(0.14);
+    border-width: 1px;
+    border-color: root.fg.with-alpha(0.45);
+    accessible-role: AccessibleRole.text;
+    accessible-label: "Status: " + root.text;
+    row := HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 12px;
+        spacing: 6px;
+        Text {
+            text: root.glyph;
+            color: root.fg;
+            font-size: 10px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.text;
+            color: root.fg;
+            font-size: Theme.font-caption;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Small message line with a leading glyph for warnings and errors.
+export component Note inherits Text {
+    in property <string> message;
+    in property <Tone> tone: Tone.neutral;
+    text: (root.tone == Tone.error ? "✕  " : root.tone == Tone.warning ? "▲  " : root.tone == Tone.success ? "✓  " : "") + root.message;
+    color: ToneColor.of(root.tone);
+    font-size: Theme.font-caption;
+    wrap: word-wrap;
+}
+
+// Two or more mutually exclusive options. Arrow keys move the selection.
+export component Segmented inherits Rectangle {
+    in property <[string]> options;
+    in-out property <int> current;
+    in property <bool> enabled: true;
+    callback changed(int);
+    height: Theme.control-height;
+    border-radius: Theme.radius-s;
+    background: Theme.elevated;
+    border-width: 1px;
+    border-color: Theme.border;
+    opacity: root.enabled ? 1 : 0.55;
+    accessible-role: AccessibleRole.tab-list;
+
+    function choose(i: int) {
+        if (root.enabled && i != root.current && i >= 0 && i < root.options.length) {
+            root.current = i;
+            root.changed(i);
+        }
+    }
+
+    // Focus rings show for keyboard (Tab) focus only, not after clicks.
+    property <bool> keyboard-focus;
+    focus := FocusScope {
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.keyboard-focus = false;
+        }
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == Key.LeftArrow) {
+                root.choose(root.current - 1);
+                return accept;
+            }
+            if (event.text == Key.RightArrow) {
+                root.choose(root.current + 1);
+                return accept;
+            }
+            return reject;
+        }
+        HorizontalLayout {
+            padding: 3px;
+            spacing: 3px;
+            for option[i] in root.options: Rectangle {
+                border-radius: Theme.radius-s - 2px;
+                background: i == root.current ? Theme.accent : seg-touch.has-hover && root.enabled ? Theme.elevated-hover : transparent;
+                animate background { duration: Theme.quick; }
+                accessible-role: AccessibleRole.tab;
+                accessible-label: option;
+                accessible-item-selected: i == root.current;
+                Text {
+                    text: option;
+                    color: i == root.current ? Theme.text : Theme.text-secondary;
+                    font-size: Theme.font-body;
+                    font-weight: i == root.current ? 600 : 500;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                seg-touch := TouchArea {
+                    enabled: root.enabled;
+                    mouse-cursor: root.enabled ? pointer : default;
+                    clicked => {
+                        focus.focus();
+                        root.choose(i);
+                    }
+                }
+            }
+        }
+    }
+
+    FocusRing {
+        width: root.width + 6px;
+        height: root.height + 6px;
+        shown: focus.has-focus && root.keyboard-focus;
+        radius: root.border-radius;
+    }
+}
+
+// Scrollable option list shown in a popup under (or above) a control.
+component OptionList inherits Rectangle {
+    in property <[string]> options;
+    in property <int> current;
+    in property <length> row-height;
+    in property <int> rows;
+    callback picked(int);
+    background: Theme.elevated;
+    border-radius: Theme.radius-s;
+    border-width: 1px;
+    border-color: Theme.border-strong;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: #00000090;
+    ListView {
+        x: 4px;
+        y: 4px;
+        width: parent.width - 8px;
+        height: parent.height - 8px;
+        content-y: -max(0, min(root.current - 2, root.options.length - root.rows)) * root.row-height;
+        for option[i] in root.options: Rectangle {
+            height: root.row-height;
+            border-radius: 4px;
+            background: i == root.current ? Theme.accent.with-alpha(0.28) : row-touch.has-hover ? Theme.elevated-hover : transparent;
+            HorizontalLayout {
+                padding-left: 8px;
+                padding-right: 8px;
+                Text {
+                    text: option;
+                    color: i == root.current ? Theme.accent-bright : Theme.text;
+                    font-size: Theme.font-body;
+                    font-weight: i == root.current ? 600 : 400;
+                    vertical-alignment: center;
+                }
+            }
+
+            row-touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => {
+                    root.picked(i);
+                }
+            }
+        }
+    }
+}
+
+// Dropdown. Click (or Space/Enter) opens the list; Up/Down change the
+// selection directly.
+export component Select inherits Rectangle {
+    in property <[string]> model;
+    in-out property <int> current-index;
+    in property <bool> enabled: true;
+    in property <bool> open-upward;
+    in property <int> max-rows: 7;
+    in property <string> name;
+    callback selected(int);
+    property <length> row-height: 30px;
+    property <length> list-height: min(root.max-rows, root.model.length) * root.row-height + 8px;
+    height: Theme.control-height;
+    border-radius: Theme.radius-s;
+    background: touch.has-hover && root.enabled ? Theme.elevated-hover : Theme.elevated;
+    border-width: 1px;
+    border-color: Theme.border;
+    opacity: root.enabled ? 1 : 0.55;
+    accessible-role: AccessibleRole.combobox;
+    accessible-label: root.name;
+    accessible-value: root.model[root.current-index];
+    accessible-enabled: root.enabled;
+
+    function pick(i: int) {
+        if (root.enabled && i >= 0 && i < root.model.length && i != root.current-index) {
+            root.current-index = i;
+            root.selected(i);
+        }
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 6px;
+        Text {
+            text: root.model[root.current-index];
+            color: Theme.text;
+            font-size: Theme.font-body;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+            overflow: elide;
+        }
+
+        Text {
+            text: "▾";
+            color: Theme.text-secondary;
+            font-size: Theme.font-body;
+            vertical-alignment: center;
+        }
+    }
+
+    // Focus rings show for keyboard (Tab) focus only, not after clicks.
+    property <bool> keyboard-focus;
+    focus := FocusScope {
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.keyboard-focus = false;
+        }
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == Key.UpArrow) {
+                root.pick(root.current-index - 1);
+                return accept;
+            }
+            if (event.text == Key.DownArrow) {
+                root.pick(root.current-index + 1);
+                return accept;
+            }
+            if (event.text == " " || event.text == "\n") {
+                popup.show();
+                return accept;
+            }
+            return reject;
+        }
+        touch := TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? pointer : default;
+            clicked => {
+                focus.focus();
+                popup.show();
+            }
+        }
+    }
+
+    FocusRing {
+        width: root.width + 6px;
+        height: root.height + 6px;
+        shown: focus.has-focus && root.keyboard-focus;
+        radius: root.border-radius;
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.open-upward ? -root.list-height - 4px : root.height + 4px;
+        width: root.width;
+        height: root.list-height;
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        OptionList {
+            options: root.model;
+            current: root.current-index;
+            row-height: root.row-height;
+            rows: root.max-rows;
+            picked(i) => {
+                root.pick(i);
+                popup.close();
+            }
+        }
+    }
+}
+
+// A key: click the name and press a key to capture it (Escape cancels),
+// or pick it from the list with the ▾ button.
+export component KeyField inherits Rectangle {
+    in property <string> key-name;
+    in property <[string]> key-names;
+    in property <int> key-index;
+    in property <bool> enabled: true;
+    in property <string> name;
+    callback captured(string);
+    callback chosen(string);
+    property <bool> capturing: focus.has-focus;
+    property <length> row-height: 30px;
+    height: Theme.control-height;
+    border-radius: Theme.radius-s;
+    background: root.capturing ? Theme.accent.with-alpha(0.18) : Theme.elevated;
+    border-width: root.capturing ? 2px : 1px;
+    border-color: root.capturing ? Theme.focus-ring : Theme.border;
+    opacity: root.enabled ? 1 : 0.55;
+    accessible-role: AccessibleRole.button;
+    accessible-label: root.name + ": " + root.key-name + ". Activate, then press a key to change it.";
+
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == Key.Escape) {
+                self.clear-focus();
+                return accept;
+            }
+            if (event.text == Key.Tab || event.text == Key.Backtab) {
+                return reject;
+            }
+            root.captured(event.text);
+            self.clear-focus();
+            return accept;
+        }
+        HorizontalLayout {
+            Rectangle {
+                horizontal-stretch: 1;
+                Text {
+                    text: root.capturing ? "Press a key…" : root.key-name;
+                    color: root.capturing ? Theme.accent-bright : Theme.text;
+                    font-size: root.capturing ? Theme.font-caption : Theme.font-strong;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                TouchArea {
+                    enabled: root.enabled;
+                    mouse-cursor: root.enabled ? pointer : default;
+                    clicked => {
+                        focus.focus();
+                    }
+                }
+            }
+
+            Rectangle {
+                width: 1px;
+                background: Theme.border;
+            }
+
+            Rectangle {
+                width: 26px;
+                background: list-touch.has-hover && root.enabled ? Theme.elevated-hover : transparent;
+                border-top-right-radius: Theme.radius-s;
+                border-bottom-right-radius: Theme.radius-s;
+                Text {
+                    text: "▾";
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-body;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+
+                list-touch := TouchArea {
+                    enabled: root.enabled;
+                    mouse-cursor: root.enabled ? pointer : default;
+                    clicked => {
+                        popup.show();
+                    }
+                }
+            }
+        }
+    }
+
+    popup := PopupWindow {
+        x: 0;
+        y: root.height + 4px;
+        width: max(root.width, 140px);
+        height: 7 * root.row-height + 8px;
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        OptionList {
+            options: root.key-names;
+            current: root.key-index;
+            row-height: root.row-height;
+            rows: 7;
+            picked(i) => {
+                root.chosen(root.key-names[i]);
+                popup.close();
+            }
+        }
+    }
+}
+
+// On/off switch with a text label.
+export component Toggle inherits Rectangle {
+    in property <string> text;
+    in-out property <bool> checked;
+    in property <bool> enabled: true;
+    callback toggled();
+    height: 26px;
+    opacity: root.enabled ? 1 : 0.55;
+    accessible-role: AccessibleRole.switch;
+    accessible-label: root.text;
+    accessible-checked: root.checked;
+    accessible-enabled: root.enabled;
+    accessible-action-default => {
+        root.flip();
+    }
+
+    function flip() {
+        if (root.enabled) {
+            root.checked = !root.checked;
+            root.toggled();
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            track := Rectangle {
+                width: 36px;
+                height: 20px;
+                border-radius: 10px;
+                background: root.checked ? Theme.accent : Theme.border-strong;
+                animate background { duration: Theme.quick; }
+                Rectangle {
+                    x: root.checked ? 18px : 2px;
+                    y: 2px;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 8px;
+                    background: Theme.text;
+                    animate x { duration: Theme.quick; }
+                }
+            }
+        }
+
+        Text {
+            text: root.text;
+            color: Theme.text;
+            font-size: Theme.font-body;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+
+    // Focus rings show for keyboard (Tab) focus only, not after clicks.
+    property <bool> keyboard-focus;
+    focus := FocusScope {
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.keyboard-focus = false;
+        }
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if (event.text == " " || event.text == "\n") {
+                root.flip();
+                return accept;
+            }
+            return reject;
+        }
+        TouchArea {
+            enabled: root.enabled;
+            mouse-cursor: root.enabled ? pointer : default;
+            clicked => {
+                focus.focus();
+                root.flip();
+            }
+        }
+    }
+
+    FocusRing {
+        width: root.width + 6px;
+        height: root.height + 6px;
+        shown: focus.has-focus && root.keyboard-focus;
+        radius: Theme.radius-s;
+    }
+}
+
+// Whole-number field with − / + buttons (Up/Down keys and the wheel also
+// step it).
+export component NumberField inherits Rectangle {
+    in-out property <int> value;
+    in property <int> minimum;
+    in property <int> maximum: 100;
+    in property <bool> enabled: true;
+    callback edited(int);
+    width: 112px;
+    height: Theme.control-height;
+    border-radius: Theme.radius-s;
+    background: Theme.elevated;
+    border-width: 1px;
+    border-color: spin.has-focus ? Theme.focus-ring : Theme.border;
+    spin := SpinBox {
+        width: 100%;
+        height: 100%;
+        value <=> root.value;
+        minimum: root.minimum;
+        maximum: root.maximum;
+        enabled: root.enabled;
+        horizontal-alignment: center;
+        edited(v) => {
+            root.edited(v);
+        }
+    }
+}
+
+// Label column + control(s), with an optional error/warning line aligned
+// under the controls.
+export component FieldRow inherits VerticalLayout {
+    in property <string> label;
+    in property <string> error;
+    in property <string> warning;
+    spacing: 4px;
+    HorizontalLayout {
+        spacing: Theme.gap-s;
+        Text {
+            text: root.label;
+            width: Theme.label-width;
+            color: Theme.text-secondary;
+            font-size: Theme.font-body;
+            vertical-alignment: center;
+            overflow: elide;
+        }
+
+        HorizontalLayout {
+            spacing: Theme.gap-s;
+            alignment: start;
+            @children
+        }
+    }
+
+    // Wrapped text inside a conditional layout is measured at its own
+    // `width`, so give the note its real width to get its real height.
+    if root.error != "" || root.warning != "": VerticalLayout {
+        padding-left: Theme.label-width + Theme.gap-s;
+        Note {
+            width: root.width - Theme.label-width - Theme.gap-s;
+            message: root.error != "" ? root.error : root.warning;
+            tone: root.error != "" ? Tone.error : Tone.warning;
+        }
+    }
+}
+
+// Clickable disclosure row ("More options ▸").
+export component Disclosure inherits Rectangle {
+    in property <string> text;
+    in-out property <bool> open;
+    callback toggled();
+    height: 30px;
+    border-radius: Theme.radius-s;
+    background: touch.has-hover ? Theme.surface : transparent;
+    accessible-role: AccessibleRole.button;
+    accessible-label: root.text + (root.open ? ", expanded" : ", collapsed");
+    accessible-action-default => {
+        root.flip();
+    }
+
+    function flip() {
+        root.open = !root.open;
+        root.toggled();
+    }
+
+    HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 6px;
+        spacing: Theme.gap-s;
+        Text {
+            text: root.open ? "▾" : "▸";
+            color: Theme.text-secondary;
+            font-size: Theme.font-body;
+            vertical-alignment: center;
+            width: 12px;
+        }
+
+        Text {
+            text: root.text;
+            color: Theme.text-secondary;
+            font-size: Theme.font-body;
+            font-weight: 600;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+    }
+
+    // Focus rings show for keyboard (Tab) focus only, not after clicks.
+    property <bool> keyboard-focus;
+    focus := FocusScope {
+        focus-gained(reason) => {
+            root.keyboard-focus = reason == FocusReason.tab-navigation;
+        }
+        focus-lost => {
+            root.keyboard-focus = false;
+        }
+        key-pressed(event) => {
+            if (event.text == " " || event.text == "\n") {
+                root.flip();
+                return accept;
+            }
+            return reject;
+        }
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => {
+                focus.focus();
+                root.flip();
+            }
+        }
+    }
+
+    FocusRing {
+        width: root.width + 6px;
+        height: root.height + 6px;
+        shown: focus.has-focus && root.keyboard-focus;
+        radius: root.border-radius;
+    }
+}

@@ -1,0 +1,8 @@
+{
+  "benchmark": "alloc",
+  "executor_allocations": 0,
+  "executor_polls": 100000,
+  "note": "allocation counts include the periodic sync round trip, amortized",
+  "xtest_preserialized_allocs_per_request": 0.0117,
+  "xtest_x11rb_wrapper_allocs_per_request": 1.0124
+}

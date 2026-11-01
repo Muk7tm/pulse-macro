@@ -1,0 +1,15 @@
+{
+  "benchmark": "dispatch",
+  "calls": 10000000,
+  "direct_ns_per_call": 2.5794664,
+  "dyn_ns_per_call": 3.1725611,
+  "environment": {
+    "build": "release",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11400F @ 2.60GHz",
+    "governor": "performance",
+    "kernel": "7.2.11-zen1-1-zen",
+    "nproc": 12,
+    "session": "x11"
+  },
+  "note": "compare with emit_call p50 of a real backend (tens of µs): dispatch is negligible"
+}

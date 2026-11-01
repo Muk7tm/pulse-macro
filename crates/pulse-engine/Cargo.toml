@@ -1,0 +1,24 @@
+[package]
+name = "pulse-engine"
+description = "Headless Pulse macro engine (no GUI dependencies)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+pulse-core.workspace = true
+pulse-input.workspace = true
+pulse-config.workspace = true
+pulse-protocol.workspace = true
+x11rb.workspace = true
+rustix.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+signal-hook.workspace = true
+
+[lints]
+workspace = true

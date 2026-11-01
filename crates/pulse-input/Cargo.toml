@@ -1,0 +1,17 @@
+[package]
+name = "pulse-input"
+description = "Pulse input backends: X11 XTest and Linux uinput"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+pulse-core.workspace = true
+x11rb.workspace = true
+evdev.workspace = true
+thiserror.workspace = true
+rustix.workspace = true
+
+[lints]
+workspace = true

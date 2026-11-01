@@ -1,0 +1,37 @@
+{
+  "benchmark": "timer",
+  "clock_nanosleep_abstime_lateness": {
+    "count": 1000,
+    "max_us": 295.259,
+    "mean_us": 123.45073699999999,
+    "min_us": 39.895,
+    "p50_us": 147.184,
+    "p95_us": 188.577,
+    "p999_us": 197.101,
+    "p99_us": 192.124,
+    "stddev_us": 62.70877257846653
+  },
+  "count": 1000,
+  "environment": {
+    "build": "release",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11400F @ 2.60GHz",
+    "governor": "performance",
+    "kernel": "7.2.11-zen1-1-zen",
+    "nproc": 12,
+    "session": "x11"
+  },
+  "interval_us": 10000,
+  "relative_sleep_accumulated_drift_us": 123747.374,
+  "timerfd_abstime_lateness": {
+    "count": 1000,
+    "max_us": 143.052,
+    "mean_us": 70.50005999999999,
+    "min_us": 2.77,
+    "p50_us": 42.838,
+    "p95_us": 137.536,
+    "p999_us": 141.588,
+    "p99_us": 140.564,
+    "stddev_us": 60.8285336662359
+  },
+  "timerfd_final_offset_us": 134.352
+}

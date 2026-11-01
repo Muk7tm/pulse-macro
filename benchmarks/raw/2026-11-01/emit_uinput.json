@@ -1,0 +1,27 @@
+{
+  "allocations_per_event": 0.00025,
+  "backend": "uinput",
+  "benchmark": "emit",
+  "emit_call": {
+    "count": 4000,
+    "max_us": 16.706,
+    "mean_us": 0.6365605000000001,
+    "min_us": 0.473,
+    "p50_us": 0.503,
+    "p95_us": 0.93,
+    "p999_us": 5.439,
+    "p99_us": 1.088,
+    "stddev_us": 0.4369400208721444
+  },
+  "environment": {
+    "build": "release",
+    "cpu_model": "11th Gen Intel(R) Core(TM) i5-11400F @ 2.60GHz",
+    "governor": "performance",
+    "kernel": "7.2.11-zen1-1-zen",
+    "nproc": 12,
+    "session": "x11"
+  },
+  "events": 4000,
+  "init_us": 30409.936,
+  "note": "time inside InputBackend::emit for one event (incl. flush/SYN_REPORT); not game-received latency"
+}

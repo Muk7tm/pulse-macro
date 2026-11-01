@@ -1,0 +1,22 @@
+[package]
+name = "pulse-cli"
+description = "Small control utility for the Pulse engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "pulse-cli"
+path = "src/main.rs"
+
+[dependencies]
+pulse-core.workspace = true
+pulse-config.workspace = true
+pulse-protocol.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

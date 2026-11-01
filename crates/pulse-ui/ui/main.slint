@@ -1,0 +1,528 @@
+// Pulse: one compact window with the basic clicker settings.
+
+import { ScrollView, AboutSlint } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import {
+    PButton, ButtonKind, Card, StatusPill, Tone, ToneColor, Note, Segmented, Select, KeyField, Toggle, NumberField,
+    FieldRow, Disclosure
+} from "components.slint";
+import { Ui, Form, Actions } from "state.slint";
+
+export { Ui, Form, Actions, Theme, Tone }
+
+component Header inherits HorizontalLayout {
+    spacing: Theme.gap-s;
+    VerticalLayout {
+        alignment: center;
+        Rectangle {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: Theme.accent-bright;
+        }
+    }
+
+    Text {
+        text: "Pulse";
+        color: Theme.text;
+        font-size: Theme.font-title;
+        font-weight: 700;
+        vertical-alignment: center;
+    }
+
+    Rectangle {
+        horizontal-stretch: 1;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        StatusPill {
+            text: Ui.pill-text;
+            tone: Ui.pill-tone;
+        }
+    }
+}
+
+component RunCard inherits Card {
+    if Ui.problem == "": VerticalLayout {
+        spacing: 6px;
+        PButton {
+            text: Ui.button-text;
+            big: true;
+            kind: Ui.button-danger ? ButtonKind.danger : ButtonKind.primary;
+            enabled: Ui.button-enabled;
+            clicked => {
+                Actions.main-button();
+            }
+        }
+
+        Note {
+            width: root.width - 2 * Theme.card-padding;
+            message: Ui.hint;
+            tone: Ui.hint-tone;
+            horizontal-alignment: center;
+        }
+
+        // One fixed line for short-lived messages (or the last run), so the
+        // layout never jumps when a message appears or goes away.
+        Note {
+            height: 16px;
+            message: Ui.toast != "" ? Ui.toast : Ui.detail;
+            tone: Ui.toast != "" ? Ui.toast-tone : Tone.neutral;
+            color: Ui.toast != "" ? ToneColor.of(Ui.toast-tone) : Theme.text-muted;
+            horizontal-alignment: center;
+            wrap: no-wrap;
+            overflow: elide;
+        }
+    }
+    if Ui.problem != "": VerticalLayout {
+        spacing: Theme.gap-s;
+        Text {
+            width: root.width - 2 * Theme.card-padding;
+            text: Ui.problem;
+            color: Theme.text;
+            font-size: Theme.font-strong;
+            font-weight: 600;
+            wrap: word-wrap;
+        }
+
+        if Ui.problem-detail != "": Note {
+            width: root.width - 2 * Theme.card-padding;
+            message: Ui.problem-detail;
+        }
+        if Ui.problem-action != "": HorizontalLayout {
+            alignment: start;
+            PButton {
+                text: Ui.problem-busy ? "Please wait…" : Ui.problem-action;
+                kind: ButtonKind.primary;
+                enabled: !Ui.problem-busy;
+                clicked => {
+                    Actions.problem-action();
+                }
+            }
+        }
+    }
+}
+
+component ClickingCard inherits Card {
+    title: "CLICKING";
+    FieldRow {
+        label: "Click";
+        error: Form.err-click != "" ? Form.err-click : Form.err-key;
+        warning: Form.warn-key;
+        Select {
+            width: Form.click-index == 3 ? 128px : 160px;
+            name: "What to click";
+            model: ["Left click", "Right click", "Middle click", "Keyboard key"];
+            current-index <=> Form.click-index;
+            enabled: Form.editable;
+            selected => {
+                Actions.form-changed();
+            }
+        }
+
+        if Form.click-index == 3: KeyField {
+            width: 100px;
+            name: "Key to press";
+            key-name: Form.key-name;
+            key-names: Form.key-names;
+            key-index: Form.key-index;
+            enabled: Form.editable;
+            captured(text) => {
+                Actions.key-captured(text);
+            }
+            chosen(name) => {
+                Actions.key-chosen(name);
+            }
+        }
+    }
+
+    FieldRow {
+        label: "Speed (ms)";
+        error: Form.err-speed;
+        warning: Form.warn-speed;
+        NumberField {
+            value <=> Form.interval-ms;
+            minimum: 1;
+            maximum: 3600000;
+            enabled: Form.editable;
+            edited => {
+                Actions.form-changed();
+            }
+        }
+
+        Text {
+            text: Form.cps-text;
+            color: Theme.accent-bright;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+
+    FieldRow {
+        label: "Hold (ms)";
+        error: Form.err-hold;
+        NumberField {
+            value <=> Form.hold-ms;
+            minimum: 1;
+            maximum: 3600000;
+            enabled: Form.editable;
+            edited => {
+                Actions.form-changed();
+            }
+        }
+
+        Text {
+            text: "press length";
+            color: Theme.text-muted;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+
+    FieldRow {
+        label: "Mode";
+        Segmented {
+            width: 220px;
+            options: ["Press to toggle", "Hold to click"];
+            current <=> Form.mode-index;
+            enabled: Form.editable;
+            changed => {
+                Actions.form-changed();
+            }
+        }
+    }
+
+    FieldRow {
+        label: "Start/stop key";
+        error: Form.err-hotkey;
+        KeyField {
+            width: 100px;
+            name: "Start and stop key";
+            key-name: Form.hotkey;
+            key-names: Form.key-names;
+            key-index: Form.hotkey-index;
+            enabled: Form.editable;
+            captured(text) => {
+                Actions.hotkey-captured(text);
+            }
+            chosen(name) => {
+                Actions.hotkey-chosen(name);
+            }
+        }
+
+        Text {
+            text: "Emergency stop: " + Form.emergency;
+            color: Theme.text-secondary;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+
+    if Form.err-general != "": Note {
+        width: root.width - 2 * Theme.card-padding;
+        message: Form.err-general;
+        tone: Tone.error;
+    }
+}
+
+component WindowCard inherits Card {
+    title: "GAME WINDOW";
+    HorizontalLayout {
+        spacing: Theme.gap-s;
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+            horizontal-stretch: 1;
+            Text {
+                text: Form.window-name == "" ? "No window picked" : Form.window-name;
+                color: Form.window-name == "" ? Theme.text-secondary : Theme.text;
+                font-size: Theme.font-strong;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            if Form.window-state != "": Note {
+                message: Form.window-state;
+                tone: Form.window-tone;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            PButton {
+                text: Form.pick-text;
+                enabled: Form.editable && !Form.picking;
+                clicked => {
+                    Actions.pick-window();
+                }
+            }
+        }
+    }
+
+    Toggle {
+        text: "Only click in this window";
+        checked <=> Form.require-focus;
+        enabled: Form.editable;
+        toggled => {
+            Actions.form-changed();
+        }
+    }
+
+    if Form.window-note != "": Note {
+        width: root.width - 2 * Theme.card-padding;
+        message: Form.window-note;
+        tone: Form.window-note-tone;
+    }
+}
+
+component MoreCard inherits Card {
+    FieldRow {
+        label: "Stop after";
+        error: Form.err-count;
+        NumberField {
+            value <=> Form.count;
+            minimum: 0;
+            maximum: 10000000;
+            enabled: Form.editable;
+            edited => {
+                Actions.form-changed();
+            }
+        }
+
+        Text {
+            text: "clicks (0 = never)";
+            color: Theme.text-muted;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+
+    FieldRow {
+        label: "Stop after";
+        error: Form.err-duration;
+        NumberField {
+            value <=> Form.duration-s;
+            minimum: 0;
+            maximum: 86400;
+            enabled: Form.editable;
+            edited => {
+                Actions.form-changed();
+            }
+        }
+
+        Text {
+            text: "seconds (0 = never)";
+            color: Theme.text-muted;
+            font-size: Theme.font-caption;
+            vertical-alignment: center;
+        }
+    }
+
+    Toggle {
+        text: "Allow very fast speeds (below 10 ms)";
+        checked <=> Form.advanced;
+        enabled: Form.editable;
+        toggled => {
+            Actions.form-changed();
+        }
+    }
+
+    if Form.advanced: Note {
+        width: root.width - 2 * Theme.card-padding;
+        message: "Very fast clicking can make some games, and Roblox chat, misbehave.";
+        tone: Tone.warning;
+    }
+
+    FieldRow {
+        label: "Input method";
+        Select {
+            width: 220px;
+            name: "Input method";
+            model: Form.backend-names;
+            current-index <=> Form.backend-index;
+            enabled: Form.editable && !Form.backend-busy;
+            open-upward: true;
+            max-rows: 2;
+            selected(i) => {
+                Actions.backend-chosen(i);
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding-left: Theme.label-width + Theme.gap-s;
+        spacing: Theme.gap-xs;
+        if Form.backend-status != "": Note {
+                message: Form.backend-status;
+                tone: Form.backend-tone;
+            }
+            if Form.backend-help != "": Note {
+                width: root.width - 2 * Theme.card-padding - Theme.label-width - Theme.gap-s;
+                message: Form.backend-help;
+                color: Theme.text-muted;
+            }
+            if Form.backend-can-switch: HorizontalLayout {
+                alignment: start;
+                PButton {
+                    text: Form.backend-busy ? "Switching…" : "Use this method";
+                    kind: ButtonKind.primary;
+                    enabled: Form.editable && !Form.backend-busy;
+                    clicked => {
+                        Actions.backend-switch();
+                    }
+                }
+            }
+    }
+}
+
+export component MainWindow inherits Window {
+    title: "Pulse";
+    preferred-width: 400px;
+    preferred-height: 680px;
+    min-width: 380px;
+    min-height: 560px;
+    background: Theme.bg;
+    default-font-size: Theme.font-body;
+
+    VerticalLayout {
+        padding-left: Theme.gap-l;
+        // The scroll area keeps a 10 px gutter for its scrollbar; header and
+        // footer add the same so all edges line up.
+        padding-right: 6px;
+        padding-top: Theme.gap-m;
+        padding-bottom: Theme.gap-m;
+        spacing: Theme.gap-m;
+
+        HorizontalLayout {
+            padding-right: 10px;
+            Header { }
+        }
+
+        scroll := ScrollView {
+            vertical-stretch: 1;
+            // Content is never wider than the window: this also keeps the
+            // explicit widths of wrapping notes from feeding back into the
+            // content width.
+            content-width: self.visible-width;
+            VerticalLayout {
+                width: scroll.visible-width;
+                padding-right: 10px;
+                spacing: Theme.gap-s;
+                alignment: start;
+                RunCard { }
+
+                ClickingCard { }
+
+                WindowCard { }
+
+                Disclosure {
+                    text: "More options";
+                    open <=> Ui.more-open;
+                    toggled => {
+                        Actions.more-toggled();
+                    }
+                }
+
+                if Ui.more-open: MoreCard { }
+            }
+        }
+
+        HorizontalLayout {
+            padding-right: 10px;
+            spacing: Theme.gap-s;
+            Text {
+                text: "Closing keeps " + Form.hotkey + "/" + Form.emergency + " working.";
+                color: Theme.text-muted;
+                font-size: Theme.font-caption;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                overflow: elide;
+            }
+
+            PButton {
+                text: "About";
+                kind: ButtonKind.ghost;
+                clicked => {
+                    about.show();
+                }
+            }
+
+            PButton {
+                text: "Quit Pulse";
+                clicked => {
+                    Actions.quit-pulse();
+                }
+            }
+        }
+    }
+
+    about := PopupWindow {
+        x: (root.width - 300px) / 2;
+        y: 64px;
+        width: 300px;
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        Rectangle {
+            background: Theme.elevated;
+            border-radius: Theme.radius-m;
+            border-width: 1px;
+            border-color: Theme.border-strong;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000080;
+            // Takes keyboard focus when the popup opens so Escape closes it.
+            FocusScope {
+                width: 0px;
+                height: 0px;
+                init => {
+                    self.focus();
+                }
+                key-pressed(event) => {
+                    if (event.text == Key.Escape) {
+                        about.close();
+                        return accept;
+                    }
+                    return reject;
+                }
+            }
+
+            VerticalLayout {
+                padding: Theme.gap-l;
+                spacing: Theme.gap-s;
+                Text {
+                    text: "Pulse " + Ui.version;
+                    color: Theme.text;
+                    font-size: Theme.font-title;
+                    font-weight: 700;
+                }
+
+                Text {
+                    text: "A lightweight auto clicker for Linux (X11). No telemetry, no network access.";
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-caption;
+                    wrap: word-wrap;
+                }
+
+                Text {
+                    text: "License: MIT.";
+                    color: Theme.text-secondary;
+                    font-size: Theme.font-caption;
+                    wrap: word-wrap;
+                }
+
+                AboutSlint {
+                    height: 110px;
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    PButton {
+                        text: "Close";
+                        clicked => {
+                            about.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

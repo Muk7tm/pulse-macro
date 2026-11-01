@@ -1,0 +1,25 @@
+[package]
+name = "pulse-ui"
+description = "Native Slint user interface for Pulse (never injects input)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "pulse-ui"
+path = "src/main.rs"
+
+[dependencies]
+pulse-core.workspace = true
+pulse-config.workspace = true
+pulse-protocol.workspace = true
+serde_json.workspace = true
+slint.workspace = true
+rustix.workspace = true
+
+[build-dependencies]
+slint-build.workspace = true
+
+[lints]
+workspace = true
