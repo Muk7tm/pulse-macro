@@ -5,7 +5,7 @@ verified by the named test or measurement · 🟡 partially done · ⬜ not done
 🔬 needs a real Sober session.
 
 Test counts are from the 2026-11-01 run of `cargo test --workspace` with an
-isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 126 passed,
+isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 130 passed,
 0 failed, 0 skipped.
 
 ## Phase 0 — Discovery
@@ -27,7 +27,8 @@ isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 126 passed,
 | Held-input ledger (fixed size, no allocation) | ✅ | `held_inputs.rs` tests |
 | Clicker validation (interval/hold/limits, hotkey conflicts, mouse or key target) | ✅ | `clicker.rs`, `validation.rs`, `pulse-config` plan tests |
 | Cancellation generation and safe stop | ✅ | executor cancel tests; engine `cancellation_tests` |
-| Absolute-deadline scheduler, skip/rebase without bursts | ✅ | 9 executor unit tests (`scheduler.rs`) |
+| Absolute-deadline scheduler, skip/rebase without bursts | ✅ | 10 executor unit tests (`scheduler.rs`) |
+| Instant clicks (hold 0) up to 1000 CPS, no bursts | ✅ | `instant_clicks_reach_1000_per_second` (executor and engine); property tests cover hold 0 and 1 ms; XTest end to end on Xvfb: 2002 of 2002 clicks received ([benchmarks.md §3](benchmarks.md#3-submission-cost-and-latency)) |
 | Fake clock + property tests | ✅ | 5000 random clicker runs (mouse and keyboard targets) with stalls/cancels + 1 h drift simulation |
 
 ## Phase 2 — XTest backend
@@ -100,7 +101,8 @@ target picker and focus rules are implemented and tested on Xvfb
 | Pick window (3 s countdown), "Only click in this window" with warning when off | ✅ | success path with a fake window manager on Xvfb; picking Pulse itself refused |
 | Input method choice with availability and fix text (More options) | 🟡 | shown and working for XTest; switching to uinput from the window not run live (it creates host devices) |
 | Starts the engine automatically; detects an older engine and offers "Restart Pulse" | ✅ | auto-start verified on Xvfb and live; restart path verified against a protocol-1 stand-in |
-| Close keeps hotkeys working; Quit Pulse stops engine and window | ✅ | verified on Xvfb |
+| Closing the window asks: keep running in the background or quit (Escape cancels; no question when Pulse isn't running) | ✅ | verified on Xvfb with openbox: dialog, Escape, Keep running (engine stays), Quit Pulse (both exit), engine already stopped (window just closes) |
+| Quit Pulse stops engine and window | ✅ | verified on Xvfb |
 | Escape closes the About box | ✅ | verified with window focus |
 | Software vs FemtoVG comparison | 🟡 | both measured idle on Xvfb ([benchmarks.md §6](benchmarks.md#6-ui-process-optional-separate)); real GPU not measured |
 | Typed key capture on non-US layouts | 🟡 | maps to US physical positions; the ▾ key list is exact |
@@ -114,6 +116,7 @@ target picker and focus rules are implemented and tested on Xvfb
 | XTest vs uinput comparison | 🟡 | submission cost measured; game-side comparison 🔬 |
 | Sober FPS / frame time A/B | ⬜ 🔬 | — |
 | Security audit / license check | 🟡 | License MIT; all dependencies permissive except Slint (royalty-free option, credit in the About box); `cargo audit` / `cargo deny` not installed |
+| `install.sh`: per-user build and install, apps-menu entry, update, uninstall | ✅ | run in a throwaway prefix: install, installed window starts the installed engine, restart prompt (yes and no), uninstall stops Pulse and removes every file |
 | systemd user unit, PKGBUILD, desktop entry | ✅ | `systemd-analyze --user verify` clean; `desktop-file-validate` clean; PKGBUILD not yet run through `makepkg` |
 | Docs, troubleshooting, uninstall | ✅ | README, docs/ |
 

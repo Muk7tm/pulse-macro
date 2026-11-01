@@ -99,7 +99,7 @@ struct SetArgs {
     /// Clicks per second (sets the interval to 1000/cps ms)
     #[arg(long)]
     cps: Option<f64>,
-    /// Press-to-release time in milliseconds
+    /// Press-to-release time in milliseconds (0 = release immediately)
     #[arg(long)]
     hold: Option<u64>,
     /// toggle: press the hotkey to start/stop; hold: click while held

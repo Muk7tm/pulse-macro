@@ -13,9 +13,10 @@ settings, a start/stop hotkey and an emergency stop.
   front, and stops the moment you switch away. It releases whatever it pressed
   on every kind of stop, and never "catches up" missed clicks in a burst.
 - **Light:** a headless Rust engine (~4 MiB of memory) that does **no work at
-  all while idle** and wakes exactly twice per click while running
-  ([measurements](docs/benchmarks.md)). The window is optional: close it and
-  the hotkeys keep working.
+  all while idle** and wakes at most twice per click while running, using
+  under 0.5 % of one CPU core even at 1000 clicks per second
+  ([measurements](docs/benchmarks.md)). The window is optional: when you close it, Pulse asks whether to
+  keep the hotkeys working in the background or quit.
 - **Two input methods:** *Standard (X11/XTest)*, the default, or
   *Virtual device (uinput)* for games that ignore the standard method.
 
@@ -24,19 +25,34 @@ settings, a start/stop hotkey and an emergency stop.
 > automation: use Pulse only where automation is allowed. Pulse contains no
 > anti-cheat evasion, process injection or memory access.
 
+## Install
+
+On an X11 desktop, from the Pulse source folder:
+
+```bash
+./install.sh
+```
+
+It builds Pulse and installs it for your user only (no root): the programs go
+to `~/.local/bin` and **Pulse** appears in your apps menu. Run it again to
+update, or `./install.sh --uninstall` to remove Pulse (your settings are
+kept). If build tools are missing, it lists them and, on Arch-based systems,
+offers to install them with `sudo pacman`.
+
 ## Using Pulse
 
-1. Open the Pulse window (`pulse-ui`). It starts the background engine by
-   itself if it isn't running.
+1. Open **Pulse** from your apps menu (or run `pulse-ui`). It starts the
+   background engine by itself if it isn't running.
 2. Choose **Click** (left/right/middle or a keyboard key), the **Speed**
-   (milliseconds between clicks) and the **Mode**: *Toggle* (press F6 to start
-   and again to stop) or *Hold* (clicks while you hold F6). Changes apply
-   immediately.
+   (milliseconds between clicks), the **Hold** (how long each click is held;
+   0 = instant) and the **Mode**: *Toggle* (press F6 to start and again to
+   stop) or *Hold* (clicks while you hold F6). Changes apply immediately.
 3. Under **Game window**, press **Pick window** and click your game within
    3 seconds.
 4. In the game, press **F6**. Press **F8** to stop everything at once.
 
-Closing the window keeps F6/F8 working; **Quit Pulse** stops everything.
+When you close the window, Pulse asks whether to keep running in the
+background (F6/F8 keep working) or quit. **Quit Pulse** stops everything.
 Settings live in `~/.config/pulse-macro/config.toml`
 ([all options](configs/example.toml)).
 
@@ -46,6 +62,7 @@ Settings live in `~/.config/pulse-macro/config.toml`
 pulse-cli status                      # what Pulse is doing and whether it can start
 pulse-cli set --cps 20 --button left  # 20 clicks per second, left button
 pulse-cli set --key E --mode hold     # spam the E key while F6 is held
+pulse-cli set --fast on --cps 1000 --hold 0  # fastest: 1000 instant clicks per second
 pulse-cli set --hotkey F7 --count 100 # F7 to start, stop after 100 clicks
 pulse-cli target capture              # pick the game window (switch to it within 3 s)
 pulse-cli backend uinput              # use the virtual-device input method
@@ -64,10 +81,11 @@ with `pulse-cli backends`. If it reports *Device Permission Denied*, follow
 [docs/security.md](docs/security.md#uinput) (a narrow, opt-in udev rule).
 Never run Pulse as root.
 
-## Build
+## Build manually
 
-Requirements: Rust ≥ 1.85 (`pacman -S rust`), an X11 session. The window also
-needs `fontconfig`, `freetype2` and `libxkbcommon` (present on most desktops).
+`install.sh` does this for you. Requirements: Rust ≥ 1.85 (`pacman -S rust`),
+a C compiler, `pkgconf`, an X11 session. The window also needs `fontconfig`,
+`freetype2` and `libxkbcommon` (present on most desktops).
 
 ```bash
 cargo build --release                  # engine, CLI and benchmark tools

@@ -157,6 +157,37 @@ fn real_timer_produces_expected_rate_without_drift() {
 }
 
 #[test]
+fn instant_clicks_reach_1000_per_second() {
+    let e = TestEngine::start(Setup {
+        name: "fastest",
+        config: "schema_version = 2\n[engine]\nallow_advanced_rates = true\n[clicker]\ninterval_ms = 1\nhold_ms = 0\n[target]\nrequire_focus = false\n",
+        ..Setup::default()
+    });
+    let mut c = e.client();
+    c.call(Command::Start).expect("start");
+    std::thread::sleep(Duration::from_millis(1_000));
+    let Some(ResponseData::Stopped(Some(info))) = c.call_data(Command::Stop).expect("stop") else {
+        panic!("no stop info")
+    };
+    // About 1000 grid slots in 1 s; a slot is skipped only when its wakeup
+    // is half a period (0.5 ms) late.
+    let slots = info.clicks + info.missed_deadlines;
+    assert!((990..=1_003).contains(&slots), "slots {slots}");
+    assert!(
+        info.clicks >= 800,
+        "clicks {} (missed {})",
+        info.clicks,
+        info.missed_deadlines
+    );
+    eprintln!(
+        "1000 CPS target: {} clicks, {} missed in 1 s",
+        info.clicks, info.missed_deadlines
+    );
+    assert_balanced(&e.events(BackendKind::XTest));
+    e.shutdown();
+}
+
+#[test]
 fn game_window_requirement_blocks_start_with_plain_reasons() {
     let e = TestEngine::start(Setup {
         name: "notarget",

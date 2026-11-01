@@ -164,7 +164,7 @@ component ClickingCard inherits Card {
         error: Form.err-hold;
         NumberField {
             value <=> Form.hold-ms;
-            minimum: 1;
+            minimum: 0;
             maximum: 3600000;
             enabled: Form.editable;
             edited => {
@@ -173,7 +173,7 @@ component ClickingCard inherits Card {
         }
 
         Text {
-            text: "press length";
+            text: Form.hold-ms == 0 ? "instant click" : "press length";
             color: Theme.text-muted;
             font-size: Theme.font-caption;
             vertical-alignment: center;
@@ -432,7 +432,7 @@ export component MainWindow inherits Window {
             padding-right: 10px;
             spacing: Theme.gap-s;
             Text {
-                text: "Closing keeps " + Form.hotkey + "/" + Form.emergency + " working.";
+                text: "Settings save automatically.";
                 color: Theme.text-muted;
                 font-size: Theme.font-caption;
                 vertical-alignment: center;
@@ -524,5 +524,110 @@ export component MainWindow inherits Window {
                 }
             }
         }
+    }
+
+    // Closing the window while Pulse runs asks first, so Pulse never keeps
+    // running in the background unnoticed.
+    close-prompt := PopupWindow {
+        x: 0;
+        y: 0;
+        width: root.width;
+        height: root.height;
+        close-policy: PopupClosePolicy.no-auto-close;
+        Rectangle {
+            width: root.width;
+            height: root.height;
+            background: #000000A0;
+            // Blocks clicks on the dimmed window behind the dialog.
+            TouchArea { }
+
+            // Takes keyboard focus when the dialog opens so Escape cancels.
+            FocusScope {
+                width: 0px;
+                height: 0px;
+                init => {
+                    self.focus();
+                }
+                key-pressed(event) => {
+                    if (event.text == Key.Escape) {
+                        close-prompt.close();
+                        return accept;
+                    }
+                    return reject;
+                }
+            }
+
+            Rectangle {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
+                width: 336px;
+                height: prompt.preferred-height;
+                background: Theme.elevated;
+                border-radius: Theme.radius-m;
+                border-width: 1px;
+                border-color: Theme.border-strong;
+                drop-shadow-blur: 16px;
+                drop-shadow-color: #00000080;
+                prompt := VerticalLayout {
+                    padding: Theme.gap-l;
+                    spacing: Theme.gap-s;
+                    Text {
+                        text: "Close Pulse?";
+                        color: Theme.text;
+                        font-size: Theme.font-title;
+                        font-weight: 700;
+                    }
+
+                    Text {
+                        text: (Ui.running ? "Pulse is clicking right now. " : "") + "Keep it running in the background so " + Form.hotkey + " and " + Form.emergency + " keep working, or quit it completely.";
+                        color: Theme.text-secondary;
+                        wrap: word-wrap;
+                    }
+
+                    Text {
+                        text: "You can open this window again from the apps menu.";
+                        color: Theme.text-muted;
+                        font-size: Theme.font-caption;
+                        wrap: word-wrap;
+                    }
+
+                    HorizontalLayout {
+                        alignment: end;
+                        spacing: Theme.gap-s;
+                        padding-top: Theme.gap-s;
+                        PButton {
+                            text: "Cancel";
+                            kind: ButtonKind.ghost;
+                            clicked => {
+                                close-prompt.close();
+                            }
+                        }
+
+                        PButton {
+                            text: "Keep running";
+                            clicked => {
+                                close-prompt.close();
+                                Actions.keep-running();
+                            }
+                        }
+
+                        PButton {
+                            text: "Quit Pulse";
+                            kind: ButtonKind.primary;
+                            clicked => {
+                                close-prompt.close();
+                                Actions.quit-pulse();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Called from Rust when the window manager asks to close the window
+    // (title-bar close button, Alt+F4) while Pulse is running.
+    public function ask-before-closing() {
+        close-prompt.show();
     }
 }

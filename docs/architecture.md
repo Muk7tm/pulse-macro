@@ -60,7 +60,9 @@ drains events x11rb may already have buffered.
    returns at most one event (press or release) and the next deadline, with
    no allocation;
 4. submits that event with one backend call and updates relaxed counters;
-5. arms the `timerfd` for the next absolute deadline.
+5. arms the `timerfd` for the next absolute deadline. A deadline that is
+   already due (the release of an instant click, hold 0) is handled in the
+   same wakeup by repeating steps 2–4, a bounded number of times.
 
 No logging, formatting, locking, allocation or IPC happens per click.
 Measured hot-path allocations: 0 (see [benchmarks.md](benchmarks.md)).
@@ -75,16 +77,17 @@ command is still queued.
 
 - Absolute deadlines: presses at `t0 + n·T`. Small lateness never
   accumulates into drift.
-- **Overload:** a press later than its hold time is skipped and the run
-  moves to the next grid slot after `now`. After a late release, the next
+- **Overload:** a press later than its hold time (half a period for an
+  instant click, hold 0) is skipped and the run moves to the next grid slot
+  after `now`. After a late release, the next
   press waits for a slot that leaves at least `(T − hold)/2` of up-time. A
   late-but-acceptable press keeps at least half its hold. Missed slots are
   counted, never burst. Releases are never skipped.
 - Every finish path (click limit, time limit, cancel) releases the input
   before reporting done.
 - Validated by unit tests and property tests: 5000 random runs (mouse and
-  keyboard targets) with injected stalls and cancels, plus a simulated
-  1-hour run checked for drift.
+  keyboard targets, intervals from 1 ms, holds from 0) with injected stalls
+  and cancels, plus a simulated 1-hour run checked for drift.
 
 ## State machine
 

@@ -13,8 +13,30 @@ use x11rb::protocol::Event;
 use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _, CreateWindowAux, EventMask, PropMode, WindowClass};
 use x11rb::wrapper::ConnectionExt as _;
 
+const USAGE: &str = "usage: pulse-test-receiver [--display :N] [--seconds N] [--verbose]
+
+Opens a test window on the X display (default: $DISPLAY) and counts the
+clicks and key presses it receives. Prints a JSON summary when the window is
+closed or after --seconds.";
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
+    // Never open a window on the desktop for an argument this tool does not
+    // understand (such as --help).
+    let known = |a: &str| matches!(a, "--display" | "--seconds" | "--verbose");
+    let mut it = args.iter().skip(1);
+    while let Some(a) = it.next() {
+        if a == "--help" || a == "-h" {
+            println!("{USAGE}");
+            return Ok(());
+        }
+        if !known(a) {
+            anyhow::bail!("unknown argument {a}\n{USAGE}");
+        }
+        if a != "--verbose" {
+            it.next();
+        }
+    }
     let display = args
         .iter()
         .position(|a| a == "--display")

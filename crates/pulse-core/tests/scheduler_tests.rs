@@ -5,7 +5,7 @@
 //! - press and release strictly alternate, and nothing is left held;
 //! - deadlines never move backwards;
 //! - presses stay on the absolute grid (`t0 + n*T`, late by less than the
-//!   hold) and never burst to catch up;
+//!   hold, or half a period for instant clicks) and never burst to catch up;
 //! - click-count and duration limits are respected.
 
 use proptest::prelude::*;
@@ -24,7 +24,7 @@ fn simulate(
     cancel_after: Option<usize>,
     max_wall: Nanos,
 ) -> (Vec<(Nanos, LogicalInput)>, Executor) {
-    let program = compile(spec, &Limits::STANDARD).expect("valid by construction").program;
+    let program = compile(spec, &Limits::ADVANCED).expect("valid by construction").program;
     let mut ex = Executor::new(program, t0);
     let mut log = Vec::new();
     let mut now = t0;
@@ -70,12 +70,12 @@ fn target_strategy() -> impl Strategy<Value = Pressable> {
 fn spec_strategy() -> impl Strategy<Value = ClickerSpec> {
     (
         target_strategy(),
-        10u64..400,
+        prop_oneof![1u64..10, 10u64..400],
         prop_oneof![Just(0u64), 1u64..20],
         prop_oneof![Just(0u64), 1u64..3_000],
     )
         .prop_flat_map(|(target, interval, count, duration)| {
-            (1u64..interval).prop_map(move |hold| ClickerSpec {
+            (0u64..interval).prop_map(move |hold| ClickerSpec {
                 target,
                 interval_ms: interval,
                 hold_ms: hold,
@@ -114,10 +114,11 @@ proptest! {
 
         let period = spec.interval_ms * MS;
         let hold = spec.hold_ms * MS;
+        let tolerance = if hold == 0 { period / 2 } else { hold };
         let presses: Vec<Nanos> = log.iter().filter(|(_, e)| e.pressable().1 == KeyState::Pressed).map(|(t, _)| *t).collect();
         for t in &presses {
             let offset = (t - t0) % period;
-            prop_assert!(offset < hold, "press at {} is {} ns off-grid", t - t0, offset);
+            prop_assert!(offset < tolerance, "press at {} is {} ns off-grid", t - t0, offset);
         }
         for w in presses.windows(2) {
             prop_assert!(w[1] - w[0] >= period / 2, "presses too close: burst");
@@ -127,7 +128,7 @@ proptest! {
         }
         if spec.duration_ms > 0 {
             for t in &presses {
-                prop_assert!(t - t0 < spec.duration_ms * MS + hold);
+                prop_assert!(t - t0 < spec.duration_ms * MS + tolerance);
             }
         }
     }

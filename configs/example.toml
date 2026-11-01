@@ -13,7 +13,7 @@ input = "mouse"                  # "mouse" repeats mouse_button, "key" repeats k
 mouse_button = "left"            # "left", "right" or "middle"
 key = "E"                        # any key name, e.g. "E", "Space", "F", "1"
 interval_ms = 100                # time between presses (100 ms = 10 clicks per second)
-hold_ms = 20                     # press-to-release time, shorter than the interval
+hold_ms = 20                     # press-to-release time (0 = instant), shorter than the interval
 activation_mode = "toggle"       # "toggle": press to start/stop; "hold": clicks while held
 activation_hotkey = "F6"
 emergency_stop_hotkey = "F8"     # always active

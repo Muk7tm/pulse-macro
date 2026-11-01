@@ -8,8 +8,9 @@
 //! - Presses are aligned to the absolute grid `t0 + n*period`; late wakeups
 //!   never accumulate drift.
 //! - A press later than its hold time is skipped (never burst-submitted to
-//!   catch up); after a late release the next press waits for a grid slot
-//!   that leaves at least `(period - hold) / 2` of up-time.
+//!   catch up); an instant click (hold 0) may be up to half a period late.
+//!   After a late release the next press waits for a grid slot that leaves
+//!   at least `(period - hold) / 2` of up-time.
 //! - A press that is late but acceptable keeps at least half its hold time.
 //! - Press and release strictly alternate; releases are never skipped.
 //! - Every finish path (count, duration, cancel) releases the input first.
@@ -112,6 +113,16 @@ impl Executor {
         matches!(self.phase, Phase::Done(_))
     }
 
+    /// How late a press may still be submitted. A held click is skipped once
+    /// its release would already be overdue; an instant click (hold 0) once
+    /// it would crowd the next grid slot.
+    fn press_tolerance(&self) -> Nanos {
+        match self.program.hold {
+            0 => self.program.period / 2,
+            hold => hold,
+        }
+    }
+
     fn past_duration(&self, at: Nanos) -> bool {
         self.program
             .max_duration
@@ -177,9 +188,9 @@ impl Executor {
         }
         let late = now - d;
         self.stats.max_lateness = self.stats.max_lateness.max(late);
-        if late >= hold {
-            // Too late: its release would already be overdue. Skip to the
-            // next grid slot strictly after `now`; never burst.
+        if late >= self.press_tolerance() {
+            // Too late: skip to the next grid slot strictly after `now`;
+            // never burst.
             let next = (now - self.t0) / period + 1;
             self.stats.missed_deadlines += next - slot;
             self.deadline = self.t0 + next * period;
@@ -334,6 +345,42 @@ mod tests {
         let step = ex.poll(15 * MS);
         assert!(step.emit.is_some_and(|e| e.is_press()));
         assert_eq!(step.next, Next::At(25 * MS));
+    }
+
+    #[test]
+    fn instant_clicks_reach_1000_per_second() {
+        let fastest = |interval| {
+            let spec = ClickerSpec {
+                target: LEFT,
+                interval_ms: interval,
+                hold_ms: 0,
+                count: 0,
+                duration_ms: 0,
+            };
+            compile(&spec, &Limits::ADVANCED).expect("valid").program
+        };
+        let mut ex = Executor::new(fastest(1), 0);
+        let log = run_ideal(&mut ex, 4_500_000);
+        let times: Vec<u64> = log.iter().map(|(t, _)| t / 1_000).collect();
+        // Press and release at the same instant, every millisecond.
+        assert_eq!(
+            times,
+            vec![0, 0, 1_000, 1_000, 2_000, 2_000, 3_000, 3_000, 4_000, 4_000]
+        );
+        assert!(log.iter().step_by(2).all(|(_, e)| e.is_press()));
+        assert_eq!((ex.stats().clicks, ex.stats().missed_deadlines), (5, 0));
+
+        // A late instant click is still sent within half a period...
+        let mut ex = Executor::new(fastest(10), 0);
+        ex.poll(0);
+        ex.poll(0);
+        assert!(ex.poll(14 * MS).emit.is_some_and(|e| e.is_press()));
+        assert_eq!(ex.poll(14 * MS).next, Next::At(20 * MS));
+        // ...and skipped after that, without bursting.
+        let step = ex.poll(26 * MS);
+        assert_eq!(step.emit, None);
+        assert_eq!(step.next, Next::At(30 * MS));
+        assert_eq!(ex.stats().missed_deadlines, 1);
     }
 
     #[test]

@@ -405,6 +405,22 @@ mod tests {
     }
 
     #[test]
+    fn instant_clicks_at_1000_per_second_are_accepted() {
+        let base = Config::default();
+        let mut f = form_from_config(&base);
+        f.interval_ms = 1;
+        f.hold_ms = 0;
+        f.advanced = true;
+        let cfg = apply_form(&base, &f).expect("valid");
+        assert_eq!((cfg.clicker.interval_ms, cfg.clicker.hold_ms), (1, 0));
+        let plan = pulse_config::plan(&cfg).expect("1 ms with an instant click is allowed");
+        let m = Messages::from_issues(&plan.warnings);
+        assert!(!m.has_errors());
+        assert!(m.warning(Field::Speed).contains("Roblox chat"));
+        assert_eq!(cps_text(1), "= 1000 clicks/sec");
+    }
+
+    #[test]
     fn engine_faults_are_shortened() {
         assert_eq!(
             friendly_fault("The game window is not in front: switch to it and press the hotkey"),

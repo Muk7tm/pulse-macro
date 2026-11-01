@@ -11,7 +11,7 @@ pub struct Limits {
     /// Smallest permitted click interval.
     pub min_interval_ms: u64,
     pub max_interval_ms: u64,
-    /// Smallest press→release time.
+    /// Smallest press→release time; 0 releases right after the press.
     pub min_hold_ms: u64,
     /// Largest "stop after N clicks".
     pub max_count: u64,
@@ -23,7 +23,7 @@ impl Limits {
     pub const STANDARD: Limits = Limits {
         min_interval_ms: 10,
         max_interval_ms: 3_600_000,
-        min_hold_ms: 1,
+        min_hold_ms: 0,
         max_count: 10_000_000,
         max_duration_ms: 24 * 3_600_000,
     };
@@ -161,9 +161,26 @@ mod tests {
         let (t, issues) = check(100, 100, Limits::STANDARD);
         assert!(t.is_none());
         assert!(issues.iter().any(|i| i.path == "clicker.hold_ms"));
+    }
 
-        let (t, _) = check(100, 0, Limits::STANDARD);
-        assert!(t.is_none());
+    #[test]
+    fn zero_hold_allows_1000_clicks_per_second() {
+        let (t, issues) = check(100, 0, Limits::STANDARD);
+        assert_eq!(t.map(|t| t.hold), Some(0));
+        assert!(issues.is_empty());
+
+        let (t, issues) = check(1, 0, Limits::ADVANCED);
+        assert_eq!(t, Some(ClickTiming { period: MS, hold: 0 }));
+        assert!(issues.iter().all(|i| !i.is_error()));
+        assert_eq!(cps(1), 1000.0);
+
+        let (t, issues) = check(1, 1, Limits::ADVANCED);
+        assert!(t.is_none(), "the hold must stay shorter than the interval");
+        assert!(issues.iter().any(|i| i.path == "clicker.hold_ms" && i.is_error()));
+        assert!(
+            check(1, 0, Limits::STANDARD).0.is_none(),
+            "1 ms still needs fast speeds"
+        );
     }
 
     #[test]

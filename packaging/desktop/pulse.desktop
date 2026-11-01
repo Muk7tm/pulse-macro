@@ -1,11 +1,12 @@
 [Desktop Entry]
 Type=Application
 Name=Pulse
-GenericName=Auto-clicker and macro tool
-Comment=Configure and control the Pulse X11 macro engine
+GenericName=Auto Clicker
+Comment=Repeat a mouse click or key press with a hotkey (X11)
 Exec=pulse-ui
 Icon=input-mouse
 Terminal=false
 Categories=Utility;
-Keywords=autoclicker;macro;clicker;input;
+Keywords=autoclicker;clicker;macro;mouse;click;input;
 StartupNotify=true
+StartupWMClass=pulse-ui

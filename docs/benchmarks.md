@@ -45,10 +45,12 @@ tick in 30 s (< 0.033 % of one core).
 | Clicking, 100 ms (10 CPS) | 0.00 s | < 0.033 | 20.0 | 3.8 MiB |
 | Clicking, 50 ms (20 CPS) | 0.01 s | 0.033 | 40.0 | 3.8 MiB |
 | Clicking, 20 ms (50 CPS) | 0.02 s | 0.067 | 100.0 | 3.8 MiB |
+| Clicking, 1 ms, hold 0 (1000 CPS) | 0.13 s | 0.43 | 1000.0 | 3.7 MiB |
 
 - The idle engine did not wake once in 30 s: no polling, no timers.
 - While clicking, wakeups are exactly two per click (press deadline, release
-  deadline), the theoretical minimum for explicit press/release.
+  deadline), the theoretical minimum for explicit press/release. With hold 0
+  the release is sent in the same wakeup as the press: one wakeup per click.
 
 ## 2. Timer accuracy
 
@@ -71,8 +73,11 @@ resolution ≤ 12.5 %), microseconds:
 | 100 ms | 620 | 144 | 144 | 145 |
 | 50 ms | 1240 | 144 | 160 | 165 |
 | 20 ms | 3100 | 144 | 144 | 148 |
+| 1 ms, hold 0 | 31002 | 2 | 10 | 1318 |
 
-No deadline was missed in any run.
+No deadline was missed in the 200–20 ms runs. At 1 ms (hold 0) a separate
+30 s run skipped 3 of 30 002 grid slots (wakeups at least half a period,
+0.5 ms, late), without bursting.
 
 - **`timerfd` vs `clock_nanosleep`:** `clock_nanosleep` is consistently ~50 µs
   later because the default 50 µs timer slack applies to it but not to
@@ -100,6 +105,11 @@ No deadline was missed in any run.
 | XTest `emit()` of one event incl. flush (Xvfb) | 10000 | 0.83 µs | 1.34 µs | 9.1 µs | 17.0 µs |
 | uinput `emit()` of one event incl. `SYN_REPORT` | 4000 | 0.50 µs | 1.09 µs | 5.4 µs | 16.7 µs |
 | XTest submit → test client receives `ButtonPress` (Xvfb) | 2000 | 5.8 µs | 18.0 µs | 23.5 µs | 139.8 µs |
+
+End to end at 1000 CPS (1 ms, hold 0): in 2 s Pulse submitted 2002 clicks and
+`pulse-test-receiver` on Xvfb received all 2002 presses and 2002 releases,
+each press 1 ms after the previous one by X server timestamps (1 ms
+resolution; [raw](../benchmarks/raw/2026-11-01/e2e_1000cps_hold0_receiver.json)).
 
 Engine reaction times (a few runs each, so only the range is meaningful):
 

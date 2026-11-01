@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use pulse_config::{Config, InputKind};
 use pulse_core::{ActivationMode, BackendAvailability, BackendKind, EngineState, Key, TargetRule};
 use pulse_protocol::{BackendInfo, Command, EngineEvent, Response, ResponseData, StatusInfo};
-use slint::{ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
+use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
 
 use crate::form::{self, Field, FormValues, Messages};
 use crate::launcher::{self, EngineLocation};
@@ -905,6 +905,17 @@ impl Controller {
         self.send(Command::SelectBackend { backend: BACKENDS[i] }, Tag::BackendSwitched);
     }
 
+    pub fn ask_before_closing(&mut self) {
+        if let Some(ui) = self.ui() {
+            ui.invoke_ask_before_closing();
+        }
+    }
+
+    /// Close the window but leave the engine, and its hotkeys, running.
+    pub fn keep_running(&mut self) {
+        let _ = slint::quit_event_loop();
+    }
+
     pub fn quit_pulse(&mut self) {
         if !self.online() {
             let _ = slint::quit_event_loop();
@@ -933,5 +944,19 @@ pub fn wire(ui: &MainWindow) {
     a.on_more_toggled(|| with(|c| c.more_toggled()));
     a.on_backend_chosen(|i| with(move |c| c.backend_chosen(i)));
     a.on_backend_switch(|| with(|c| c.backend_switch()));
+    a.on_keep_running(|| with(|c| c.keep_running()));
     a.on_quit_pulse(|| with(|c| c.quit_pulse()));
+    // While Pulse is connected, closing the window asks whether to keep it
+    // running in the background; otherwise nothing would keep running.
+    ui.window().on_close_requested(|| {
+        let ask = CTL.with(|cell| match cell.try_borrow() {
+            Ok(c) => c.as_ref().is_some_and(Controller::online),
+            Err(_) => true,
+        });
+        if !ask {
+            return CloseRequestResponse::HideWindow;
+        }
+        with(|c| c.ask_before_closing());
+        CloseRequestResponse::KeepWindowShown
+    });
 }
