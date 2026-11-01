@@ -51,7 +51,9 @@ impl Default for Setup<'_> {
     fn default() -> Self {
         Setup {
             name: "t",
-            config: "schema_version = 2\n[target]\nrequire_focus = false\n",
+            // Explicit clicker settings: tests must not depend on the
+            // user-facing defaults, which the project owner may change.
+            config: "schema_version = 2\n[clicker]\ninterval_ms = 100\nhold_ms = 20\nactivation_mode = \"toggle\"\nactivation_hotkey = \"F6\"\n[target]\nrequire_focus = false\n",
             display: None,
             xtest_is_physical: false,
             root: None,

@@ -196,12 +196,13 @@ component ClickingCard inherits Card {
     FieldRow {
         label: "Start/stop key";
         error: Form.err-hotkey;
-        KeyField {
+        hotkey-field := KeyField {
             width: 100px;
             name: "Start and stop key";
             key-name: Form.hotkey;
-            key-names: Form.key-names;
+            key-names: Form.hotkey-names;
             key-index: Form.hotkey-index;
+            side-buttons: true;
             enabled: Form.editable;
             captured(text) => {
                 Actions.hotkey-captured(text);
@@ -212,7 +213,7 @@ component ClickingCard inherits Card {
         }
 
         Text {
-            text: "Emergency stop: " + Form.emergency;
+            text: hotkey-field.capturing ? "or click a side button" : "Emergency stop: " + Form.emergency;
             color: Theme.text-secondary;
             font-size: Theme.font-caption;
             vertical-alignment: center;
@@ -451,7 +452,7 @@ export component MainWindow inherits Window {
             PButton {
                 text: "Quit Pulse";
                 clicked => {
-                    Actions.quit-pulse();
+                    Actions.close-window();
                 }
             }
         }

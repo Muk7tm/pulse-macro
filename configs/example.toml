@@ -11,17 +11,17 @@ stop_on_suspend = true
 [clicker]
 input = "mouse"                  # "mouse" repeats mouse_button, "key" repeats key
 mouse_button = "left"            # "left", "right" or "middle"
-key = "E"                        # any key name, e.g. "E", "Space", "F", "1"
-interval_ms = 100                # time between presses (100 ms = 10 clicks per second)
-hold_ms = 20                     # press-to-release time (0 = instant), shorter than the interval
-activation_mode = "toggle"       # "toggle": press to start/stop; "hold": clicks while held
-activation_hotkey = "F6"
-emergency_stop_hotkey = "F8"     # always active
+key = "F"                        # any key name, e.g. "E", "Space", "F", "1"
+interval_ms = 10                 # time between presses (100 ms = 10 clicks per second)
+hold_ms = 0                      # press-to-release time (0 = instant), shorter than the interval
+activation_mode = "hold"         # "toggle": press to start/stop; "hold": clicks while held
+activation_hotkey = "E"          # a key name, or "Mouse4" / "Mouse5" (mouse side buttons)
+emergency_stop_hotkey = "F8"     # always active; a key name or "Mouse4" / "Mouse5"
 count = 0                        # stop after N clicks; 0 = until stopped
 duration_ms = 0                  # stop after N ms; 0 = no time limit
 
 [target]
-require_focus = true             # click only while the selected game window is in front
+require_focus = false            # true: click only while the selected game window is in front
 window_class = ""                # set by "Pick window"; never hardcoded
 window_title_pattern = ""
 

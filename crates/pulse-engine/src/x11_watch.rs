@@ -1,15 +1,18 @@
 //! X11 observation on the control thread: global hotkeys via
-//! XInput2 raw key events and focus tracking via `_NET_ACTIVE_WINDOW`.
+//! XInput2 raw key and button events and focus tracking via
+//! `_NET_ACTIVE_WINDOW`.
 //!
 //! Raw events are observed passively (no grab), so the hotkey still reaches
 //! the focused application. Events whose source device is Pulse's own
 //! injection path (the XTEST slave devices or the Pulse uinput devices) are
-//! dropped, so Pulse can never trigger itself. Everything is event-driven;
-//! nothing here polls.
+//! dropped, so Pulse can never trigger itself. Raw button events are selected
+//! only while a mouse side button is a hotkey, and only on physical pointer
+//! devices, so Pulse's own clicks never wake this thread. Everything is
+//! event-driven; nothing here polls.
 
 use std::os::fd::{AsFd, BorrowedFd};
 
-use pulse_core::{Key, Nanos, WindowInfo};
+use pulse_core::{Hotkey, Nanos, SideButton, WindowInfo};
 use pulse_input::X11Keymap;
 use pulse_input::uinput::{KEYBOARD_NAME, MOUSE_NAME};
 use pulse_protocol::SessionSummary;
@@ -26,8 +29,9 @@ use crate::clock::monotonic_now;
 
 #[derive(Debug)]
 pub enum X11Event {
-    Key {
-        key: Key,
+    /// A physical key or side-button transition.
+    Input {
+        input: Hotkey,
         pressed: bool,
         received_at: Nanos,
     },
@@ -50,6 +54,12 @@ pub struct X11Watch {
     keymap: X11Keymap,
     synthetic: Vec<u16>,
     device_names: Vec<String>,
+    /// Physical pointer devices (slave pointers that are not synthetic).
+    pointers: Vec<u16>,
+    /// Whether a mouse side button is a hotkey.
+    mouse_hotkeys: bool,
+    /// Pointer devices with raw button events selected.
+    button_devices: Vec<u16>,
     atoms: Atoms,
     watched: Option<u32>,
     ewmh: bool,
@@ -149,6 +159,9 @@ impl X11Watch {
             keymap,
             synthetic: Vec::new(),
             device_names: Vec::new(),
+            pointers: Vec::new(),
+            mouse_hotkeys: false,
+            button_devices: Vec::new(),
             atoms,
             watched: None,
             ewmh: false,
@@ -195,6 +208,7 @@ impl X11Watch {
             .map_err(|e| e.to_string())?;
         self.synthetic.clear();
         self.device_names.clear();
+        self.pointers.clear();
         for info in reply.infos {
             let name = String::from_utf8_lossy(&info.name).into_owned();
             let is_slave = matches!(
@@ -207,9 +221,45 @@ impl X11Watch {
             if is_slave && (xtest || name == KEYBOARD_NAME || name == MOUSE_NAME) {
                 self.synthetic.push(info.deviceid);
                 self.device_names.push(name);
+            } else if info.type_ == xinput::DeviceType::SLAVE_POINTER {
+                self.pointers.push(info.deviceid);
             }
         }
         Ok(())
+    }
+
+    /// Watch the mouse side buttons (only while one is a hotkey).
+    pub fn set_mouse_hotkeys(&mut self, on: bool) {
+        self.mouse_hotkeys = on;
+        self.select_buttons();
+    }
+
+    /// Bring the raw-button selection in line with the physical pointers.
+    fn select_buttons(&mut self) {
+        let wanted = if self.mouse_hotkeys {
+            self.pointers.clone()
+        } else {
+            Vec::new()
+        };
+        let (add, remove) = button_selection_changes(&self.button_devices, &wanted, &self.pointers);
+        let masks: Vec<xinput::EventMask> = add
+            .iter()
+            .map(|&deviceid| xinput::EventMask {
+                deviceid,
+                mask: vec![xinput::XIEventMask::RAW_BUTTON_PRESS | xinput::XIEventMask::RAW_BUTTON_RELEASE],
+            })
+            .chain(remove.iter().map(|&deviceid| xinput::EventMask {
+                deviceid,
+                mask: Vec::new(),
+            }))
+            .collect();
+        if !masks.is_empty() {
+            // Unchecked: a device unplugged in the meantime only yields an
+            // ignored error event.
+            let _ = self.conn.xinput_xi_select_events(self.root, &masks);
+            let _ = self.conn.flush();
+        }
+        self.button_devices = wanted;
     }
 
     fn get_prop(&self, win: u32, prop: u32, ty: u32, len: u32) -> Option<Cookie<'_, RustConnection, GetPropertyReply>> {
@@ -306,8 +356,11 @@ impl X11Watch {
             match ev {
                 Event::XinputRawKeyPress(e) => self.raw_key(e.sourceid, e.detail, true, out),
                 Event::XinputRawKeyRelease(e) => self.raw_key(e.sourceid, e.detail, false, out),
+                Event::XinputRawButtonPress(e) => self.raw_button(e.sourceid, e.detail, true, out),
+                Event::XinputRawButtonRelease(e) => self.raw_button(e.sourceid, e.detail, false, out),
                 Event::XinputHierarchy(_) => {
                     let _ = self.refresh_devices();
+                    self.select_buttons();
                     out.push(X11Event::DevicesChanged);
                 }
                 Event::PropertyNotify(e) => {
@@ -337,11 +390,59 @@ impl X11Watch {
         }
         let Ok(kc) = u8::try_from(detail) else { return };
         if let Some(key) = self.keymap.key_for_x11(kc) {
-            out.push(X11Event::Key {
-                key,
+            out.push(X11Event::Input {
+                input: Hotkey::Key(key),
                 pressed,
                 received_at: monotonic_now(),
             });
         }
+    }
+
+    fn raw_button(&self, source: u16, detail: u32, pressed: bool, out: &mut Vec<X11Event>) {
+        if self.synthetic.contains(&source) {
+            return;
+        }
+        if let Some(button) = SideButton::from_x11_button(detail) {
+            out.push(X11Event::Input {
+                input: Hotkey::Mouse(button),
+                pressed,
+                received_at: monotonic_now(),
+            });
+        }
+    }
+}
+
+/// Devices to start (`add`) and stop (`remove`) watching for raw button
+/// events. Devices that are gone need no deselection.
+fn button_selection_changes(selected: &[u16], wanted: &[u16], present: &[u16]) -> (Vec<u16>, Vec<u16>) {
+    let add = wanted.iter().copied().filter(|d| !selected.contains(d)).collect();
+    let remove = selected
+        .iter()
+        .copied()
+        .filter(|d| !wanted.contains(d) && present.contains(d))
+        .collect();
+    (add, remove)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::button_selection_changes;
+
+    #[test]
+    fn button_selection_follows_hotkeys_and_hotplug() {
+        // Side-button hotkey set: watch both mice.
+        assert_eq!(button_selection_changes(&[], &[9, 11], &[9, 11]), (vec![9, 11], vec![]));
+        // A mouse is plugged in.
+        assert_eq!(
+            button_selection_changes(&[9, 11], &[9, 11, 14], &[9, 11, 14]),
+            (vec![14], vec![])
+        );
+        // A mouse is unplugged: nothing to deselect.
+        assert_eq!(
+            button_selection_changes(&[9, 11, 14], &[9, 14], &[9, 14]),
+            (vec![], vec![])
+        );
+        // Hotkey changed back to a keyboard key: stop watching.
+        assert_eq!(button_selection_changes(&[9, 14], &[], &[9, 14]), (vec![], vec![9, 14]));
     }
 }

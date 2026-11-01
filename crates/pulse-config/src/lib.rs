@@ -11,7 +11,7 @@ use std::io::Write;
 use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
-use pulse_core::{ActivationMode, BackendKind, Issue, Key, MouseButton, Pressable};
+use pulse_core::{ActivationMode, BackendKind, Hotkey, Issue, Key, MouseButton, Pressable};
 use serde::{Deserialize, Serialize};
 
 pub use plan::{ClickPlan, plan};
@@ -160,9 +160,10 @@ pub struct ClickerSection {
     /// Press → release time.
     pub hold_ms: u64,
     pub activation_mode: ActivationMode,
-    pub activation_hotkey: Key,
+    /// A key name, or `Mouse4` / `Mouse5` for the mouse side buttons.
+    pub activation_hotkey: Hotkey,
     /// Always active; stops clicking immediately.
-    pub emergency_stop_hotkey: Key,
+    pub emergency_stop_hotkey: Hotkey,
     /// Stop after this many clicks; 0 = until stopped.
     pub count: u64,
     /// Stop after this many milliseconds; 0 = no time limit.
@@ -174,12 +175,12 @@ impl Default for ClickerSection {
         ClickerSection {
             input: InputKind::Mouse,
             mouse_button: MouseButton::Left,
-            key: Key::E,
-            interval_ms: 100,
-            hold_ms: 20,
-            activation_mode: ActivationMode::Toggle,
-            activation_hotkey: Key::F6,
-            emergency_stop_hotkey: Key::F8,
+            key: Key::F,
+            interval_ms: 10,
+            hold_ms: 0,
+            activation_mode: ActivationMode::Hold,
+            activation_hotkey: Hotkey::Key(Key::E),
+            emergency_stop_hotkey: Hotkey::Key(Key::F8),
             count: 0,
             duration_ms: 0,
         }
@@ -209,24 +210,15 @@ impl ClickerSection {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TargetSection {
-    /// Click only while the selected game window is focused.
+    /// Click only while the selected game window is focused (off by
+    /// default: clicks go to whatever window is in front).
     pub require_focus: bool,
     /// Populated by user selection; never hardcoded.
     pub window_class: String,
     pub window_title_pattern: String,
-}
-
-impl Default for TargetSection {
-    fn default() -> Self {
-        TargetSection {
-            require_focus: true,
-            window_class: String::new(),
-            window_title_pattern: String::new(),
-        }
-    }
 }
 
 impl TargetSection {
@@ -375,7 +367,10 @@ impl Config {
                 "the emergency stop key must differ from the start/stop hotkey",
             ));
         }
-        if c.target() == Pressable::Key(c.emergency_stop_hotkey) {
+        if c.emergency_stop_hotkey
+            .key()
+            .is_some_and(|k| c.target() == Pressable::Key(k))
+        {
             issues.push(Issue::error(
                 "clicker.key",
                 format!(
@@ -532,6 +527,25 @@ mod tests {
         assert!(cfg.validate().iter().any(|i| i.path == "clicker.key"));
         let d = tmpdir("reject");
         assert!(cfg.save(&d.join("config.toml")).is_err());
+    }
+
+    #[test]
+    fn mouse_side_buttons_are_valid_hotkeys() {
+        let text =
+            "schema_version = 2\n[clicker]\nactivation_hotkey = \"Mouse4\"\nemergency_stop_hotkey = \"Mouse5\"\n";
+        let cfg = Config::from_toml_str(text, Path::new("x")).expect("side buttons parse");
+        assert_eq!(
+            cfg.clicker.activation_hotkey,
+            Hotkey::Mouse(pulse_core::SideButton::Back)
+        );
+        assert!(cfg.validate().is_empty());
+        let back = Config::from_toml_str(&cfg.to_toml_string().expect("ser"), Path::new("x")).expect("de");
+        assert_eq!(back, cfg);
+        let e = Config::from_toml_str(
+            "schema_version = 2\n[clicker]\nactivation_hotkey = \"Mouse9\"\n",
+            Path::new("x"),
+        );
+        assert!(e.is_err(), "unknown buttons are rejected");
     }
 
     #[test]

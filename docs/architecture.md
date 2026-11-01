@@ -132,9 +132,18 @@ with either backend. Auto-repeat is ignored by tracking pressed state per key.
 Keycodes are mapped through the verified X11 keymap: evdev+8 when the
 server's layout-independent keys confirm it, otherwise a keysym lookup.
 
+A hotkey can also be a mouse side button, `Mouse4` (X11 button 8, back) or
+`Mouse5` (button 9, forward). Raw button events
+(`XI_RawButtonPress/Release`) are selected only while a side button is a
+hotkey, and only on the physical pointer devices (re-selected when devices
+are plugged in or removed), never on the XTEST or Pulse devices. Pulse's
+own clicks therefore never wake the control thread. Left, right and middle
+are never hotkeys.
+
 *Trade-off:* raw events wake the engine for every physical key transition
-(not mouse motion). `XGrabKey` would wake only for the hotkeys but steals
-them from the game, so Pulse observes raw events.
+(not mouse motion), plus every physical button press while a side-button
+hotkey is set. `XGrabKey`/`XGrabButton` would wake only for the hotkeys but
+steal them from the game, so Pulse observes raw events.
 
 ## Focus guard
 
@@ -159,4 +168,4 @@ safe.
 | Desktop-lock detection | Not implemented | Needs D-Bus; lock screens take focus, which the focus guard already handles |
 | Automatic input-method choice | Not implemented: the user picks XTest (default) or uinput | Whether a game accepts a method can only be seen in that game |
 | Modifier hotkeys (Ctrl+F6) | Single keys only | Raw events carry no modifier state |
-| Mouse-button hotkeys | Not supported | They can conflict with the clicks Pulse sends, especially on the same button |
+| Mouse-button hotkeys | Side buttons only (`Mouse4`, `Mouse5`) | Left, right and middle can conflict with the clicks Pulse sends |

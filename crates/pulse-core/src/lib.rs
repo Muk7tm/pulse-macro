@@ -19,6 +19,7 @@ pub use clicker::{ClickerSpec, Compiled, Program};
 pub use errors::{Issue, Severity, ValidationFailed};
 pub use focus::{FocusGuard, TargetRule, WindowInfo};
 pub use held_inputs::HeldInputs;
+pub use hotkeys::{Hotkey, SideButton};
 pub use input::{Key, KeyState, LogicalInput, MouseButton, Pressable};
 pub use scheduler::{Executor, FinishReason, Next, RunStats, Step};
 pub use state::{ActivationMode, EngineState, StopReason};

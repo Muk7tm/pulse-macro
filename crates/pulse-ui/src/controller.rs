@@ -9,7 +9,7 @@ use std::sync::mpsc::Sender;
 use std::time::{Duration, Instant};
 
 use pulse_config::{Config, InputKind};
-use pulse_core::{ActivationMode, BackendAvailability, BackendKind, EngineState, Key, TargetRule};
+use pulse_core::{ActivationMode, BackendAvailability, BackendKind, EngineState, Hotkey, Key, TargetRule};
 use pulse_protocol::{BackendInfo, Command, EngineEvent, Response, ResponseData, StatusInfo};
 use slint::{CloseRequestResponse, ComponentHandle, ModelRc, SharedString, Timer, TimerMode, VecModel};
 
@@ -111,6 +111,14 @@ fn key_index(name: &str) -> i32 {
         .unwrap_or(0)
 }
 
+/// Position of a hotkey name in the start/stop key list.
+fn hotkey_index(name: &str) -> i32 {
+    Hotkey::all()
+        .position(|h| h.name() == name)
+        .and_then(|i| i32::try_from(i).ok())
+        .unwrap_or(0)
+}
+
 fn tone_for(availability: BackendAvailability) -> Tone {
     match availability {
         BackendAvailability::Ready => Tone::Success,
@@ -124,6 +132,7 @@ impl Controller {
         let names: Vec<SharedString> = crate::keys::all_key_names();
         let form = ui.global::<Form>();
         form.set_key_names(ModelRc::new(VecModel::from(names)));
+        form.set_hotkey_names(ModelRc::new(VecModel::from(crate::keys::all_hotkey_names())));
         form.set_backend_names(ModelRc::new(VecModel::from(
             BACKEND_LABELS
                 .iter()
@@ -631,7 +640,8 @@ impl Controller {
         let (note, tone) = if self.countdown > 0 {
             ("Now click your game window…".to_owned(), Tone::Accent)
         } else if !f.get_require_focus() {
-            ("Clicks go to whatever window is in front.".to_owned(), Tone::Warning)
+            let (note, warning) = form::unrestricted_note(&f.get_hotkey());
+            (note, if warning { Tone::Warning } else { Tone::Neutral })
         } else if name.is_empty() {
             ("Pick your game so Pulse only clicks there.".to_owned(), Tone::Neutral)
         } else {
@@ -687,7 +697,7 @@ impl Controller {
         f.set_hold_ms(v.hold_ms);
         f.set_mode_index(v.mode_index);
         f.set_hotkey(v.hotkey.clone().into());
-        f.set_hotkey_index(key_index(&v.hotkey));
+        f.set_hotkey_index(hotkey_index(&v.hotkey));
         f.set_emergency(cfg.clicker.emergency_stop_hotkey.name().into());
         f.set_count(v.count);
         f.set_duration_s(v.duration_s);
@@ -839,7 +849,7 @@ impl Controller {
         if let Some(ui) = self.ui() {
             let f = ui.global::<Form>();
             f.set_hotkey(name.into());
-            f.set_hotkey_index(key_index(name));
+            f.set_hotkey_index(hotkey_index(name));
         }
         self.form_changed();
     }
@@ -911,6 +921,16 @@ impl Controller {
         }
     }
 
+    /// The window's Quit Pulse button: like the title-bar close button, ask
+    /// first while Pulse is running.
+    pub fn close_window(&mut self) {
+        if self.online() {
+            self.ask_before_closing();
+        } else {
+            let _ = slint::quit_event_loop();
+        }
+    }
+
     /// Close the window but leave the engine, and its hotkeys, running.
     pub fn keep_running(&mut self) {
         let _ = slint::quit_event_loop();
@@ -944,6 +964,7 @@ pub fn wire(ui: &MainWindow) {
     a.on_more_toggled(|| with(|c| c.more_toggled()));
     a.on_backend_chosen(|i| with(move |c| c.backend_chosen(i)));
     a.on_backend_switch(|| with(|c| c.backend_switch()));
+    a.on_close_window(|| with(|c| c.close_window()));
     a.on_keep_running(|| with(|c| c.keep_running()));
     a.on_quit_pulse(|| with(|c| c.quit_pulse()));
     // While Pulse is connected, closing the window asks whether to keep it

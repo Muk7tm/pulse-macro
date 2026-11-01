@@ -7,11 +7,11 @@ Pulse repeats **one thing**: a mouse button (left, right or middle) **or** one
 keyboard key. There are no macro sequences, presets or profiles: one set of
 settings, a start/stop hotkey and an emergency stop.
 
-- **Simple:** pick what to click, set the speed, press **F6** in your game.
-  **F8** stops everything, always.
-- **Safe:** by default it only clicks while the game window you picked is in
-  front, and stops the moment you switch away. It releases whatever it pressed
-  on every kind of stop, and never "catches up" missed clicks in a burst.
+- **Simple:** pick what to click, set the speed, hold **E** in your game (or
+  any start key you choose). **F8** stops everything, always.
+- **Safe:** it releases whatever it pressed on every kind of stop and never
+  "catches up" missed clicks in a burst. Optionally it clicks only while the
+  game window you picked is in front, and stops the moment you switch away.
 - **Light:** a headless Rust engine (~4 MiB of memory) that does **no work at
   all while idle** and wakes at most twice per click while running, using
   under 0.5 % of one CPU core even at 1000 clicks per second
@@ -45,14 +45,20 @@ offers to install them with `sudo pacman`.
    background engine by itself if it isn't running.
 2. Choose **Click** (left/right/middle or a keyboard key), the **Speed**
    (milliseconds between clicks), the **Hold** (how long each click is held;
-   0 = instant) and the **Mode**: *Toggle* (press F6 to start and again to
-   stop) or *Hold* (clicks while you hold F6). Changes apply immediately.
-3. Under **Game window**, press **Pick window** and click your game within
-   3 seconds.
-4. In the game, press **F6**. Press **F8** to stop everything at once.
+   0 = instant) and the **Mode**: *Hold* (clicks while you hold the start
+   key, **E** by default) or *Toggle* (press it to start and again to stop).
+   The start key can also be a mouse side button: click the key box and
+   press the side button, or pick **Mouse4** (back) or **Mouse5** (forward)
+   from its ▾ list. Changes apply immediately.
+3. Optional: to click only in your game, press **Pick window** under **Game
+   window**, click your game within 3 seconds, and turn on **Only click in
+   this window**. While it is off, the start key works in every window, so
+   typing an **E** anywhere else clicks too.
+4. In the game, hold **E**. Press **F8** to stop everything at once.
 
-When you close the window, Pulse asks whether to keep running in the
-background (F6/F8 keep working) or quit. **Quit Pulse** stops everything.
+When you close the window or press **Quit Pulse**, Pulse asks whether to
+keep running in the background (your start key and F8 keep working) or quit
+completely.
 Settings live in `~/.config/pulse-macro/config.toml`
 ([all options](configs/example.toml)).
 
@@ -61,10 +67,12 @@ Settings live in `~/.config/pulse-macro/config.toml`
 ```bash
 pulse-cli status                      # what Pulse is doing and whether it can start
 pulse-cli set --cps 20 --button left  # 20 clicks per second, left button
-pulse-cli set --key E --mode hold     # spam the E key while F6 is held
+pulse-cli set --key F --mode hold     # spam the F key while the start key is held
 pulse-cli set --fast on --cps 1000 --hold 0  # fastest: 1000 instant clicks per second
 pulse-cli set --hotkey F7 --count 100 # F7 to start, stop after 100 clicks
+pulse-cli set --hotkey Mouse4         # start with the mouse's back side button
 pulse-cli target capture              # pick the game window (switch to it within 3 s)
+pulse-cli set --restrict on           # then click only while that window is in front
 pulse-cli backend uinput              # use the virtual-device input method
 pulse-cli estop                       # emergency stop
 pulse-cli shutdown                    # quit Pulse

@@ -14,7 +14,7 @@ events are *submitted*, not that Roblox *acts* on them.
 | Sober | 1.8.0 (commit 7b6430c7…), Flatpak |
 | System | CachyOS, kernel 7.2.11-zen1, native X11 (LXQt), NVIDIA RTX 3060 |
 | Backend | XTest |
-| Settings | Quick Clicker: left button, 100 ms interval (10 CPS), 20 ms hold, toggle |
+| Settings | Left button, 100 ms interval (10 CPS), 20 ms hold, toggle |
 | Target | `window_class = "org.vinegarhq.Sober"`, picked with the 3 s window picker; restriction on |
 | Engine counters | 15 runs, 2298 clicks submitted, 0 missed deadlines, 0 backend errors, every stop `release_ok=true` |
 | Outcome | **User confirmed the clicks worked in the game.** |
@@ -22,9 +22,9 @@ events are *submitted*, not that Roblox *acts* on them.
 This partly covers test 1 (basic clicks, XTest) below. It was not a
 controlled run: no experience name, no submitted-vs-acted count, and no
 chat, menu, first-person, focus-loss or frame-time checks were recorded. The
-activation hotkey during this run was the letter `F` rather than the
-default `F6`. Note that a letter key also toggles the clicker while you type
-in chat. uinput was not tried in-game.
+activation hotkey during this run was the letter `F`. A letter key also
+starts the clicker while you type in chat and, with the window restriction
+off, while you type in any other window. uinput was not tried in-game.
 
 Use only an experience you own or have explicit permission to automate.
 Stop immediately if chat focus, input lag or frame times deteriorate.
@@ -50,7 +50,7 @@ pulse-cli backends                 # both should be Ready (uinput may need setup
 
 | # | Test | Steps | Pass criteria | XTest | uinput |
 |---|---|---|---|---|---|
-| 1 | Basic clicks | Quick Clicker 100 ms / 20 ms hold, toggle F6, 30 s | Every click acts in-world; F6 stops at once | works (user-reported, informal, 2026-11-01) | not tested |
+| 1 | Basic clicks | Left click 100 ms / 20 ms hold, toggle F6, 30 s | Every click acts in-world; F6 stops at once | works (user-reported, informal, 2026-11-01) | not tested |
 | 2 | Submitted vs acted | Count in-game actions vs `submitted_clicks` | Equal within observation error | not tested | not tested |
 | 3 | Menus/inventory | Click UI buttons and inventory slots | Each click registers once | not tested | not tested |
 | 4 | Chat focus | Run 30 s, stop, press `/` and type | Chat opens and receives text normally | not tested | not tested |

@@ -4,7 +4,7 @@
 //! game window is a reason not to *start*, not a reason to reject settings.
 
 use pulse_core::clicker::{ClickerSpec, compile};
-use pulse_core::{ActivationMode, Issue, Key, Limits, Pressable, Program, TargetRule, ValidationFailed};
+use pulse_core::{ActivationMode, Hotkey, Issue, Limits, Pressable, Program, TargetRule, ValidationFailed};
 
 use crate::Config;
 
@@ -12,9 +12,9 @@ use crate::Config;
 pub struct ClickPlan {
     pub program: Program,
     pub warnings: Vec<Issue>,
-    pub activation_hotkey: Key,
+    pub activation_hotkey: Hotkey,
     pub activation_mode: ActivationMode,
-    pub emergency_stop_hotkey: Key,
+    pub emergency_stop_hotkey: Hotkey,
     pub require_focus: bool,
     pub target: TargetRule,
 }
@@ -43,7 +43,10 @@ pub fn plan(cfg: &Config) -> Result<ClickPlan, ValidationFailed> {
             None
         }
     };
-    if c.target() == Pressable::Key(c.activation_hotkey) {
+    if c.activation_hotkey
+        .key()
+        .is_some_and(|k| c.target() == Pressable::Key(k))
+    {
         issues.push(Issue::warning(
             "clicker.key",
             format!(
@@ -68,22 +71,26 @@ pub fn plan(cfg: &Config) -> Result<ClickPlan, ValidationFailed> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pulse_core::MouseButton;
+    use pulse_core::{Key, MouseButton};
 
     #[test]
     fn default_plan() {
         let p = plan(&Config::default()).expect("valid");
         assert_eq!(p.program.target, Pressable::Button(MouseButton::Left));
-        assert_eq!(p.activation_hotkey, Key::F6);
-        assert_eq!(p.emergency_stop_hotkey, Key::F8);
-        assert!(p.require_focus);
-        assert!(p.warnings.is_empty());
+        assert_eq!(p.activation_hotkey, Hotkey::Key(Key::E));
+        assert_eq!(p.activation_mode, ActivationMode::Hold);
+        assert_eq!(p.emergency_stop_hotkey, Hotkey::Key(Key::F8));
+        assert!(!p.require_focus, "clicking anywhere is the default");
+        // The default 10 ms speed only carries the Sober chat caution.
+        assert!(!p.warnings.is_empty());
+        assert!(p.warnings.iter().all(|w| w.path == "clicker.interval_ms"));
     }
 
     #[test]
     fn keyboard_clicker_plan_and_self_hotkey_warning() {
         let mut cfg = Config::default();
-        cfg.clicker.set_target(Pressable::Key(Key::F6));
+        cfg.clicker.set_target(Pressable::Key(Key::E));
+        cfg.clicker.activation_hotkey = Hotkey::Key(Key::E);
         let p = plan(&cfg).expect("valid with a warning");
         assert!(p.warnings.iter().any(|w| w.message.contains("its own hotkey")));
     }

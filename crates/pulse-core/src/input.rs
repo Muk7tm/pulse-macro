@@ -253,12 +253,14 @@ static KEY_ALIASES: &[(&str, &str)] = &[
 ];
 
 impl Key {
-    /// Default activation hotkey.
+    /// F6, a start/stop key nobody types by accident.
     pub const F6: Key = Key(64);
     /// Default emergency-stop hotkey.
     pub const F8: Key = Key(66);
-    /// Default key for the keyboard clicker.
+    /// Default start/stop hotkey.
     pub const E: Key = Key(18);
+    /// Default key for the keyboard clicker.
+    pub const F: Key = Key(33);
 
     /// Create a key from an evdev code if Pulse knows it.
     pub fn from_code(code: u16) -> Option<Key> {
@@ -472,6 +474,7 @@ mod tests {
         assert_eq!(Key::F6.name(), "F6");
         assert_eq!(Key::F8.name(), "F8");
         assert_eq!(Key::E.name(), "E");
+        assert_eq!(Key::F.name(), "F");
     }
 
     #[test]

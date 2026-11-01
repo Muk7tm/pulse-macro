@@ -35,20 +35,22 @@ export global Form {
     in property <bool> editable;
 
     in-out property <int> click-index;
-    in-out property <string> key-name: "E";
+    in-out property <string> key-name: "F";
     in-out property <int> key-index;
     in property <[string]> key-names;
-    in-out property <int> interval-ms: 100;
+    in-out property <int> interval-ms: 10;
     in property <string> cps-text;
-    in-out property <int> hold-ms: 20;
-    in-out property <int> mode-index;
-    in-out property <string> hotkey: "F6";
+    in-out property <int> hold-ms: 0;
+    in-out property <int> mode-index: 1;
+    in-out property <string> hotkey: "E";
     in property <int> hotkey-index;
+    // Start/stop key choices: the mouse side buttons, then every key.
+    in property <[string]> hotkey-names;
     in property <string> emergency: "F8";
     in-out property <int> count;
     in-out property <int> duration-s;
     in-out property <bool> advanced;
-    in-out property <bool> require-focus: true;
+    in-out property <bool> require-focus: false;
 
     // Inline messages (empty = none).
     in property <string> err-click;
@@ -93,6 +95,7 @@ export global Actions {
     callback more-toggled();
     callback backend-chosen(int);
     callback backend-switch();
+    callback close-window();
     callback keep-running();
     callback quit-pulse();
 }

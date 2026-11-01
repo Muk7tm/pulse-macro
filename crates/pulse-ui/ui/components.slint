@@ -424,16 +424,18 @@ export component Select inherits Rectangle {
 }
 
 // A key: click the name and press a key to capture it (Escape cancels),
-// or pick it from the list with the ▾ button.
+// or pick it from the list with the ▾ button. With `side-buttons`, a mouse
+// side button pressed over the field is captured too.
 export component KeyField inherits Rectangle {
     in property <string> key-name;
     in property <[string]> key-names;
     in property <int> key-index;
     in property <bool> enabled: true;
+    in property <bool> side-buttons;
     in property <string> name;
     callback captured(string);
     callback chosen(string);
-    property <bool> capturing: focus.has-focus;
+    out property <bool> capturing: focus.has-focus;
     property <length> row-height: 30px;
     height: Theme.control-height;
     border-radius: Theme.radius-s;
@@ -475,6 +477,17 @@ export component KeyField inherits Rectangle {
                     mouse-cursor: root.enabled ? pointer : default;
                     clicked => {
                         focus.focus();
+                    }
+                    pointer-event(event) => {
+                        if (root.side-buttons && root.capturing && event.kind == PointerEventKind.down) {
+                            if (event.button == PointerEventButton.back) {
+                                root.chosen("Mouse4");
+                                focus.clear-focus();
+                            } else if (event.button == PointerEventButton.forward) {
+                                root.chosen("Mouse5");
+                                focus.clear-focus();
+                            }
+                        }
                     }
                 }
             }

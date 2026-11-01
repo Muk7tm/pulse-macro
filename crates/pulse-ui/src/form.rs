@@ -2,7 +2,7 @@
 //! plain-English texts the window shows. No Slint types: unit-testable.
 
 use pulse_config::{Config, InputKind};
-use pulse_core::{ActivationMode, Issue, Key, MouseButton, Severity, StopReason, TargetRule, WindowInfo};
+use pulse_core::{ActivationMode, Hotkey, Issue, Key, MouseButton, Severity, StopReason, TargetRule, WindowInfo};
 use pulse_protocol::StopInfo;
 
 /// Index of "Keyboard key" in the window's "Click" dropdown.
@@ -94,7 +94,7 @@ pub fn apply_form(base: &Config, f: &FormValues) -> Result<Config, FormError> {
         field: Field::Key,
         message: format!("Unknown key “{}”", f.key),
     })?;
-    c.activation_hotkey = Key::parse(&f.hotkey).map_err(|_| FormError {
+    c.activation_hotkey = Hotkey::parse(&f.hotkey).map_err(|_| FormError {
         field: Field::Hotkey,
         message: format!("Unknown key “{}”", f.hotkey),
     })?;
@@ -224,6 +224,25 @@ pub fn cps_text(interval_ms: i32) -> String {
     }
 }
 
+/// Whether a key is pressed during ordinary typing: it produces a
+/// character, or it is Enter, Tab, Backspace or a number-pad key.
+pub fn is_typing_key(name: &str) -> bool {
+    let Ok(key) = Key::parse(name) else { return false };
+    let sym = key.info().us_keysym;
+    (0x20..=0x7e).contains(&sym) || matches!(sym, 0xff08 | 0xff09 | 0xff0d) || key.name().starts_with("Kp")
+}
+
+/// The note under "Only click in this window" while it is off, and whether
+/// it is a warning: with a typing key as the hotkey, typing that key in any
+/// window starts clicks too.
+pub fn unrestricted_note(hotkey: &str) -> (String, bool) {
+    if is_typing_key(hotkey) {
+        (format!("Typing {hotkey} anywhere also clicks."), true)
+    } else {
+        ("Clicks go to whatever window is in front.".to_owned(), false)
+    }
+}
+
 /// A short name for the picked game window, e.g. "Sober" for
 /// `org.vinegarhq.Sober`.
 pub fn window_name(rule: &TargetRule) -> String {
@@ -309,10 +328,10 @@ mod tests {
         let cfg = Config::default();
         let f = form_from_config(&cfg);
         assert_eq!(f.click_index, 0);
-        assert_eq!(f.key, "E");
-        assert_eq!((f.interval_ms, f.hold_ms, f.mode_index), (100, 20, 0));
-        assert_eq!(f.hotkey, "F6");
-        assert!(f.require_focus && !f.advanced);
+        assert_eq!(f.key, "F");
+        assert_eq!((f.interval_ms, f.hold_ms, f.mode_index), (10, 0, 1));
+        assert_eq!(f.hotkey, "E");
+        assert!(!f.require_focus && !f.advanced);
         assert_eq!(apply_form(&cfg, &f).expect("valid"), cfg);
     }
 
@@ -340,6 +359,15 @@ mod tests {
         assert!(!cfg.target.require_focus);
         // And back.
         assert_eq!(form_from_config(&cfg), f);
+
+        f.hotkey = "Mouse4".into();
+        let cfg = apply_form(&base, &f).expect("a side button is a valid hotkey");
+        assert_eq!(
+            cfg.clicker.activation_hotkey,
+            Hotkey::Mouse(pulse_core::SideButton::Back)
+        );
+        assert_eq!(form_from_config(&cfg).hotkey, "Mouse4");
+        assert!(!is_typing_key("Mouse4"), "side buttons are never typed");
 
         f.click_index = 1;
         let cfg = apply_form(&base, &f).expect("valid");
@@ -391,7 +419,7 @@ mod tests {
         assert!(m.error(Field::Speed).contains("Allow very fast speeds"));
 
         let mut cfg = Config::default();
-        cfg.clicker.activation_hotkey = Key::F8;
+        cfg.clicker.activation_hotkey = Key::F8.into();
         let err = pulse_config::plan(&cfg).expect_err("same as emergency");
         assert_eq!(
             Messages::from_issues(&err.issues).error(Field::Hotkey),
@@ -418,6 +446,22 @@ mod tests {
         assert!(!m.has_errors());
         assert!(m.warning(Field::Speed).contains("Roblox chat"));
         assert_eq!(cps_text(1), "= 1000 clicks/sec");
+    }
+
+    #[test]
+    fn typing_hotkeys_warn_when_clicks_are_not_limited_to_the_game() {
+        for typed in ["E", "1", "Space", "Slash", "Enter", "Kp5"] {
+            assert!(is_typing_key(typed), "{typed}");
+        }
+        for not_typed in ["F6", "F8", "Escape", "LeftShift", "Home", "NotAKey"] {
+            assert!(!is_typing_key(not_typed), "{not_typed}");
+        }
+        let (note, warning) = unrestricted_note("E");
+        assert!(warning && note.contains("Typing E anywhere"), "{note}");
+        assert_eq!(
+            unrestricted_note("F6"),
+            ("Clicks go to whatever window is in front.".to_owned(), false)
+        );
     }
 
     #[test]

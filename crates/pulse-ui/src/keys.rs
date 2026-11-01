@@ -6,7 +6,7 @@
 //! layouts letters may land on a different physical key — the key dropdown
 //! is the exact fallback. Function keys are layout-independent.
 
-use pulse_core::Key;
+use pulse_core::{Hotkey, Key};
 use slint::platform::Key as SKey;
 
 const NAMED: &[(SKey, &str)] = &[
@@ -109,9 +109,14 @@ pub fn key_name_from_slint(text: &str) -> Option<String> {
     Key::parse(&name).ok().map(|k| k.name().to_owned())
 }
 
-/// All bindable key names, for dropdowns.
+/// All keys the clicker can press, for the "Key to press" list.
 pub fn all_key_names() -> Vec<slint::SharedString> {
     Key::all().map(|k| k.name().into()).collect()
+}
+
+/// All start/stop keys: the mouse side buttons first, then every key.
+pub fn all_hotkey_names() -> Vec<slint::SharedString> {
+    Hotkey::all().map(|h| h.name().into()).collect()
 }
 
 #[cfg(test)]
@@ -134,5 +139,13 @@ mod tests {
         assert_eq!(key_name_from_slint("é"), None);
         assert_eq!(key_name_from_slint("ab"), None);
         assert_eq!(key_name_from_slint(""), None);
+    }
+
+    #[test]
+    fn side_buttons_are_hotkeys_but_never_keys_to_press() {
+        let hotkeys = all_hotkey_names();
+        assert_eq!((hotkeys[0].as_str(), hotkeys[1].as_str()), ("Mouse4", "Mouse5"));
+        assert!(hotkeys.iter().any(|n| n == "F6"));
+        assert!(!all_key_names().iter().any(|n| n.starts_with("Mouse")));
     }
 }

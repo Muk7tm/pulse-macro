@@ -154,6 +154,11 @@ pub struct Engine {
     client_out_registered: Vec<bool>,
 }
 
+/// Whether a mouse side button is the start/stop or emergency-stop hotkey.
+fn uses_side_buttons(cfg: &Config) -> bool {
+    cfg.clicker.activation_hotkey.is_mouse() || cfg.clicker.emergency_stop_hotkey.is_mouse()
+}
+
 fn trigger_config(cfg: &Config) -> TriggerConfig {
     TriggerConfig {
         activation: cfg.clicker.activation_hotkey,
@@ -434,6 +439,9 @@ impl Engine {
     fn apply_config(&mut self) {
         self.plan = pulse_config::plan(&self.config);
         self.trigger.reconfigure(trigger_config(&self.config));
+        if let Some(w) = self.x11.as_mut() {
+            w.set_mouse_hotkeys(uses_side_buttons(&self.config));
+        }
         self.focus.set_rule(self.config.target.rule());
         self.publish_focus();
     }
@@ -492,6 +500,7 @@ impl Engine {
                 if !w.has_ewmh_active_window() {
                     warn!("window manager does not publish _NET_ACTIVE_WINDOW; the game window cannot be confirmed");
                 }
+                w.set_mouse_hotkeys(uses_side_buttons(&self.config));
                 self.x11 = Some(w);
                 self.x11_error = None;
                 self.focus.set_active(active);
@@ -539,13 +548,13 @@ impl Engine {
 
     fn handle_x11_event(&mut self, ev: X11Event) {
         match ev {
-            X11Event::Key {
-                key,
+            X11Event::Input {
+                input,
                 pressed,
                 received_at,
             } => {
                 let running = self.run.as_ref().is_some_and(|r| r.stopping.is_none());
-                match self.trigger.on_key(key, pressed, running) {
+                match self.trigger.on_input(input, pressed, running) {
                     TriggerAction::None => {}
                     TriggerAction::Start => {
                         if let Err(f) = self.start(Some(received_at)) {

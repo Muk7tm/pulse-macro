@@ -1,15 +1,16 @@
 //! End-to-end engine tests on an isolated X server (`PULSE_TEST_DISPLAY`,
-//! e.g. Xvfb `:99`): XInput2 hotkeys, self-trigger suppression, hold mode,
-//! emergency stop and the focus guard. Input injection uses mock backends;
-//! physical key presses are simulated with XTest, which only these tests
-//! (via a test-only engine option) treat as physical.
+//! e.g. Xvfb `:99`): XInput2 hotkeys (keys and mouse side buttons),
+//! self-trigger suppression, hold mode, emergency stop and the focus guard.
+//! Input injection uses mock backends; physical key and button presses are
+//! simulated with XTest, which only these tests (via a test-only engine
+//! option) treat as physical.
 
 mod common;
 
 use std::time::Duration;
 
 use common::{Setup, TestEngine, assert_balanced, clicks};
-use pulse_core::{BackendKind, EngineState, StopReason};
+use pulse_core::{BackendKind, EngineState, SideButton, StopReason};
 use pulse_protocol::{ClientError, Command, ResponseData};
 use x11rb::connection::Connection;
 use x11rb::protocol::xproto::{AtomEnum, ConnectionExt as _, CreateWindowAux, PropMode, WindowClass};
@@ -113,6 +114,15 @@ impl FakeDesktop {
         self.key(kc, true);
         self.key(kc, false);
     }
+
+    fn click(&self, x11_button: u8) {
+        for t in [4, 5] {
+            self.conn
+                .xtest_fake_input(t, x11_button, 0, x11rb::NONE, 0, 0, 0)
+                .expect("fake");
+        }
+        self.conn.sync().expect("sync");
+    }
 }
 
 impl Drop for FakeDesktop {
@@ -135,7 +145,9 @@ fn engine(display: &str, physical: bool, config: &str) -> TestEngine {
     })
 }
 
-const UNRESTRICTED: &str = "schema_version = 2\n[target]\nrequire_focus = false\n";
+/// F6 toggles, clicks go anywhere. Hotkey and mode are explicit so the tests
+/// do not depend on the user-facing defaults.
+const UNRESTRICTED: &str = "schema_version = 2\n[clicker]\nactivation_mode = \"toggle\"\nactivation_hotkey = \"F6\"\n[target]\nrequire_focus = false\n";
 
 #[test]
 fn pulse_ignores_xtest_sourced_hotkeys_by_default() {
@@ -183,6 +195,32 @@ fn toggle_hotkey_starts_and_stops_and_records_trigger_latency() {
 }
 
 #[test]
+fn mouse_side_buttons_work_as_hotkeys() {
+    let _g = SERIAL.lock().unwrap_or_else(|p| p.into_inner());
+    let Some(d) = display() else { return };
+    let desk = FakeDesktop::new(&d);
+    let e = engine(
+        &d,
+        true,
+        "schema_version = 2\n[clicker]\nactivation_mode = \"toggle\"\nactivation_hotkey = \"Mouse4\"\nemergency_stop_hotkey = \"Mouse5\"\n[target]\nrequire_focus = false\n",
+    );
+    desk.click(SideButton::Back.x11_button());
+    e.wait_state(EngineState::Running, Duration::from_secs(2));
+    std::thread::sleep(Duration::from_millis(150));
+    desk.click(SideButton::Forward.x11_button());
+    let s = e.wait_state(EngineState::Ready, Duration::from_secs(2));
+    assert_eq!(s.last_stop.map(|l| l.reason), Some(StopReason::EmergencyStop));
+    // Ordinary clicks and the old keyboard hotkey do nothing.
+    desk.click(1);
+    desk.tap(F6);
+    std::thread::sleep(Duration::from_millis(150));
+    let s = e.status();
+    assert_eq!((s.state, s.counters.runs), (EngineState::Ready, 1));
+    assert_balanced(&e.events(BackendKind::XTest));
+    e.shutdown();
+}
+
+#[test]
 fn hold_mode_runs_only_while_held() {
     let _g = SERIAL.lock().unwrap_or_else(|p| p.into_inner());
     let Some(d) = display() else { return };
@@ -190,7 +228,7 @@ fn hold_mode_runs_only_while_held() {
     let e = engine(
         &d,
         true,
-        "schema_version = 2\n[clicker]\nactivation_mode = \"hold\"\n[target]\nrequire_focus = false\n",
+        "schema_version = 2\n[clicker]\nactivation_mode = \"hold\"\nactivation_hotkey = \"F6\"\n[target]\nrequire_focus = false\n",
     );
     desk.key(F6, true);
     e.wait_state(EngineState::Running, Duration::from_secs(2));
@@ -268,7 +306,11 @@ fn hotkey_without_a_picked_window_explains_instead_of_clicking() {
     let _g = SERIAL.lock().unwrap_or_else(|p| p.into_inner());
     let Some(d) = display() else { return };
     let desk = FakeDesktop::new(&d);
-    let e = engine(&d, true, "schema_version = 2\n[target]\nrequire_focus = true\n");
+    let e = engine(
+        &d,
+        true,
+        "schema_version = 2\n[clicker]\nactivation_hotkey = \"F6\"\n[target]\nrequire_focus = true\n",
+    );
     let s = e.status();
     assert!(!s.can_start);
     assert_eq!(s.start_blocker.as_deref(), Some("Pick the game window first"));

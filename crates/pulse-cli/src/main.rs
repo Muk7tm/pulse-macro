@@ -7,7 +7,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use clap::{Parser, Subcommand, ValueEnum};
 use pulse_config::{Config, Paths};
-use pulse_core::{ActivationMode, BackendKind, Key, MouseButton, Pressable, TargetRule};
+use pulse_core::{ActivationMode, BackendKind, Hotkey, Key, MouseButton, Pressable, TargetRule};
 use pulse_protocol::{Client, ClientError, Command, EngineEvent, Response, ResponseData};
 
 #[derive(Parser)]
@@ -105,7 +105,7 @@ struct SetArgs {
     /// toggle: press the hotkey to start/stop; hold: click while held
     #[arg(long, value_enum)]
     mode: Option<Mode>,
-    /// Start/stop hotkey (e.g. F6)
+    /// Start/stop hotkey: a key (e.g. F6, E) or a mouse side button (Mouse4, Mouse5)
     #[arg(long)]
     hotkey: Option<String>,
     /// Stop after N clicks (0 = never)
@@ -301,7 +301,7 @@ fn apply_set(cfg: &mut Config, a: &SetArgs) -> Result<()> {
         };
     }
     if let Some(k) = &a.hotkey {
-        c.activation_hotkey = Key::parse(k)?;
+        c.activation_hotkey = Hotkey::parse(k)?;
     }
     if let Some(n) = a.count {
         c.count = n;

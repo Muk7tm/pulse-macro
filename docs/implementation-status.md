@@ -5,7 +5,7 @@ verified by the named test or measurement · 🟡 partially done · ⬜ not done
 🔬 needs a real Sober session.
 
 Test counts are from the 2026-11-01 run of `cargo test --workspace` with an
-isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 130 passed,
+isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 137 passed,
 0 failed, 0 skipped.
 
 ## Phase 0 — Discovery
@@ -40,7 +40,8 @@ isolated Xvfb (`PULSE_TEST_DISPLAY`) and `PULSE_TEST_UINPUT=1`: 130 passed,
 | Button/key mapping (verified evdev+8, keysym fallback) | ✅ | keymap unit tests (incl. AZERTY-style layout); Xvfb delivery test |
 | Flush per batch, no per-event round trip; bounded x11rb bookkeeping | ✅ | encoding test vs x11rb serializer; sync every 256 requests; memory soak |
 | Native test receiver | ✅ | `pulse-test-receiver` |
-| XInput2 raw hotkeys, self-trigger suppression | ✅ | `x11_engine_tests` (6 tests) |
+| XInput2 raw hotkeys, self-trigger suppression | ✅ | `x11_engine_tests` (7 tests) |
+| Mouse side buttons (Mouse4/Mouse5) as hotkeys; raw button events only from physical pointers, only while one is set | ✅ | `mouse_side_buttons_work_as_hotkeys`, `button_selection_follows_hotkeys_and_hotplug`, `side_buttons_work_like_keys` |
 | XGrabKey evaluation | ⬜ | trade-off documented in [architecture.md](architecture.md#hotkeys-and-self-trigger-suppression) |
 | Fault handling and close; release on drop | ✅ | `drop_releases_held_inputs`, `sigterm_while_held_releases_and_exits_cleanly` |
 | Releases confirmed by the server before disconnecting | ✅ | `release_survives_immediate_disconnect` (was 2/20 stuck without the round trip, now 0/60) |
@@ -101,8 +102,9 @@ target picker and focus rules are implemented and tested on Xvfb
 | Pick window (3 s countdown), "Only click in this window" with warning when off | ✅ | success path with a fake window manager on Xvfb; picking Pulse itself refused |
 | Input method choice with availability and fix text (More options) | 🟡 | shown and working for XTest; switching to uinput from the window not run live (it creates host devices) |
 | Starts the engine automatically; detects an older engine and offers "Restart Pulse" | ✅ | auto-start verified on Xvfb and live; restart path verified against a protocol-1 stand-in |
-| Closing the window asks: keep running in the background or quit (Escape cancels; no question when Pulse isn't running) | ✅ | verified on Xvfb with openbox: dialog, Escape, Keep running (engine stays), Quit Pulse (both exit), engine already stopped (window just closes) |
-| Quit Pulse stops engine and window | ✅ | verified on Xvfb |
+| Closing the window or pressing Quit Pulse asks: keep running in the background or quit (Escape cancels; no question when Pulse isn't running) | ✅ | verified on Xvfb with openbox: dialog, Escape, Keep running (engine stays), Quit Pulse (both exit), engine already stopped (window just closes) |
+| Quitting from the dialog stops engine and window | ✅ | verified on Xvfb (title-bar close and the Quit Pulse button) |
+| Start key from a mouse side button (press it over the key box, or pick Mouse4/Mouse5 from the list) | ✅ | Xvfb walkthrough (XTest button 8 over the key box); the "Key to press" list stays keyboard-only |
 | Escape closes the About box | ✅ | verified with window focus |
 | Software vs FemtoVG comparison | 🟡 | both measured idle on Xvfb ([benchmarks.md §6](benchmarks.md#6-ui-process-optional-separate)); real GPU not measured |
 | Typed key capture on non-US layouts | 🟡 | maps to US physical positions; the ▾ key list is exact |
