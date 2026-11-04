@@ -138,46 +138,6 @@ export component Card inherits Rectangle {
     }
 }
 
-// Status pill: glyph + text.
-export component StatusPill inherits Rectangle {
-    in property <string> text;
-    in property <Tone> tone: Tone.neutral;
-    property <color> fg: ToneColor.of(root.tone);
-    property <string> glyph: root.tone == Tone.accent ? "▶"
-        : root.tone == Tone.success ? "●"
-        : root.tone == Tone.warning ? "▲"
-        : root.tone == Tone.error ? "✕" : "○";
-    // The live state (clicking) is a solid pill.
-    property <bool> solid: root.tone == Tone.accent;
-    height: 26px;
-    width: row.preferred-width;
-    border-radius: 13px;
-    background: root.solid ? Theme.accent : root.fg.with-alpha(0.10);
-    border-width: 1px;
-    border-color: root.solid ? Theme.accent : root.fg.with-alpha(0.35);
-    accessible-role: AccessibleRole.text;
-    accessible-label: "Status: " + root.text;
-    row := HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 12px;
-        spacing: 6px;
-        Text {
-            text: root.glyph;
-            color: root.solid ? Theme.on-accent : root.fg;
-            font-size: 10px;
-            vertical-alignment: center;
-        }
-
-        Text {
-            text: root.text;
-            color: root.solid ? Theme.on-accent : root.fg;
-            font-size: Theme.font-caption;
-            font-weight: 600;
-            vertical-alignment: center;
-        }
-    }
-}
-
 // Small message line with a leading glyph for warnings and errors.
 export component Note inherits Text {
     in property <string> message;

@@ -517,26 +517,6 @@ impl Controller {
         g.set_problem_action(action.into());
         g.set_problem_busy(busy);
 
-        let (pill, tone) = match (&self.link, self.status.as_ref()) {
-            (Link::Online, Some(s)) => match s.state {
-                EngineState::Running => ("Clicking", Tone::Accent),
-                EngineState::Stopping => ("Stopping", Tone::Warning),
-                EngineState::Error => ("Problem", Tone::Error),
-                EngineState::Ready if s.can_start => ("Ready", Tone::Success),
-                EngineState::Booting => ("Starting…", Tone::Neutral),
-                EngineState::ShuttingDown => ("Closing…", Tone::Neutral),
-                _ => ("Not ready", Tone::Warning),
-            },
-            (Link::Online, None)
-            | (Link::Connecting, _)
-            | (Link::Starting { .. }, _)
-            | (Link::Restarting { .. }, _) => ("Connecting…", Tone::Neutral),
-            (Link::Older(_), _) | (Link::StartFailed(_), _) => ("Problem", Tone::Error),
-            (Link::Stopped, _) => ("Not running", Tone::Warning),
-        };
-        g.set_pill_text(pill.into());
-        g.set_pill_tone(tone);
-
         self.render_main_card();
         self.render_window_card();
     }

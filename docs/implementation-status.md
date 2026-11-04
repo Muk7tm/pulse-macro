@@ -95,7 +95,7 @@ target picker and focus rules are implemented and tested on Xvfb
 | Item | Status | Evidence |
 |---|---|---|
 | Separate process, IPC only; no `pulse-input`/engine dependency | ✅ | `cargo tree -p pulse-ui` (no pulse-input/evdev); engine tree has no Slint |
-| One compact window (400×680): status, Start/Stop, Clicking, Game window, More options, About, Quit | ✅ | screenshots on Xvfb and on the live desktop |
+| One compact window (400×640): Start/Stop, Clicking, Game window, More options, About, Quit | ✅ | screenshots on Xvfb and on the live desktop |
 | Click = left/right/middle **or keyboard key** (capture or list), speed with clicks/sec, hold, Toggle/Hold, start/stop key, emergency key shown | ✅ | Xvfb walkthrough; settings saved and reflected by the engine |
 | Settings apply automatically; invalid values shown inline and never sent; locked while clicking | ✅ | 12 UI unit tests (form↔config, issue paths) + Xvfb walkthrough |
 | Plain-language states and blockers ("Pick the game window first", "Not in front", live click counter, last run) | ✅ | screenshots of ready / clicking / after-run / blocked states |

@@ -3,45 +3,12 @@
 import { ScrollView, AboutSlint } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import {
-    PButton, ButtonKind, Card, StatusPill, Tone, ToneColor, Note, Segmented, Select, KeyField, Toggle, NumberField,
+    PButton, ButtonKind, Card, Tone, ToneColor, Note, Segmented, Select, KeyField, Toggle, NumberField,
     FieldRow, Disclosure
 } from "components.slint";
 import { Ui, Form, Actions } from "state.slint";
 
 export { Ui, Form, Actions, Theme, Tone }
-
-component Header inherits HorizontalLayout {
-    spacing: Theme.gap-s;
-    VerticalLayout {
-        alignment: center;
-        Rectangle {
-            width: 10px;
-            height: 10px;
-            border-radius: 5px;
-            background: Theme.accent-bright;
-        }
-    }
-
-    Text {
-        text: "Pulse";
-        color: Theme.text;
-        font-size: Theme.font-title;
-        font-weight: 700;
-        vertical-alignment: center;
-    }
-
-    Rectangle {
-        horizontal-stretch: 1;
-    }
-
-    VerticalLayout {
-        alignment: center;
-        StatusPill {
-            text: Ui.pill-text;
-            tone: Ui.pill-tone;
-        }
-    }
-}
 
 component RunCard inherits Card {
     if Ui.problem == "": VerticalLayout {
@@ -380,25 +347,20 @@ component MoreCard inherits Card {
 export component MainWindow inherits Window {
     title: "Pulse";
     preferred-width: 400px;
-    preferred-height: 680px;
+    preferred-height: 640px;
     min-width: 380px;
-    min-height: 560px;
+    min-height: 520px;
     background: Theme.bg;
     default-font-size: Theme.font-body;
 
     VerticalLayout {
         padding-left: Theme.gap-l;
-        // The scroll area keeps a 10 px gutter for its scrollbar; header and
-        // footer add the same so all edges line up.
+        // The scroll area keeps a 10 px gutter for its scrollbar; the footer
+        // adds the same so all edges line up.
         padding-right: 6px;
         padding-top: Theme.gap-m;
         padding-bottom: Theme.gap-m;
         spacing: Theme.gap-m;
-
-        HorizontalLayout {
-            padding-right: 10px;
-            Header { }
-        }
 
         scroll := ScrollView {
             vertical-stretch: 1;
