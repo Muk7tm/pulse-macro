@@ -1,5 +1,6 @@
-//! Compiles the Slint UI. The cosmic-dark widget style is used because its
-//! teal accent matches Pulse's palette (std-widget palettes are read-only).
+//! Compiles the Slint UI. Pulse draws its controls from its own black-and-
+//! white theme; the cosmic-dark widget style only supplies the scroll views,
+//! whose scroll bars are neutral grey (std-widget palettes are read-only).
 
 fn main() {
     let config = slint_build::CompilerConfiguration::new().with_style("cosmic-dark".into());

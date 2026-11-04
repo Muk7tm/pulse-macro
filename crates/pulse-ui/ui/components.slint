@@ -3,7 +3,7 @@
 // shows a focus ring, and conveys state with text or a glyph, never with
 // colour alone.
 
-import { ListView, SpinBox } from "std-widgets.slint";
+import { ListView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 
 export enum Tone { neutral, accent, success, warning, error }
@@ -63,13 +63,14 @@ export component PButton inherits Rectangle {
     background: !root.enabled ? (root.kind == ButtonKind.ghost ? transparent : Theme.elevated.darker(0.2))
         : touch.pressed ? root.hover.darker(0.15)
         : touch.has-hover ? root.hover : root.base;
-    border-width: root.kind == ButtonKind.secondary || (!root.enabled && root.kind != ButtonKind.ghost) ? 1px : 0px;
-    border-color: Theme.border;
+    border-width: root.kind == ButtonKind.secondary || root.kind == ButtonKind.danger || (!root.enabled && root.kind != ButtonKind.ghost) ? 1px : 0px;
+    border-color: root.kind == ButtonKind.danger && root.enabled ? Theme.text : Theme.border;
     animate background { duration: Theme.quick; }
 
     label := Text {
         text: root.text;
         color: !root.enabled ? Theme.text-muted
+            : root.kind == ButtonKind.primary ? Theme.on-accent
             : root.kind == ButtonKind.ghost ? Theme.text-secondary : Theme.text;
         font-size: root.big ? 15px : Theme.font-body;
         font-weight: root.kind == ButtonKind.primary || root.kind == ButtonKind.danger ? 600 : 500;
@@ -146,12 +147,14 @@ export component StatusPill inherits Rectangle {
         : root.tone == Tone.success ? "●"
         : root.tone == Tone.warning ? "▲"
         : root.tone == Tone.error ? "✕" : "○";
+    // The live state (clicking) is a solid pill.
+    property <bool> solid: root.tone == Tone.accent;
     height: 26px;
     width: row.preferred-width;
     border-radius: 13px;
-    background: root.fg.with-alpha(0.14);
+    background: root.solid ? Theme.accent : root.fg.with-alpha(0.10);
     border-width: 1px;
-    border-color: root.fg.with-alpha(0.45);
+    border-color: root.solid ? Theme.accent : root.fg.with-alpha(0.35);
     accessible-role: AccessibleRole.text;
     accessible-label: "Status: " + root.text;
     row := HorizontalLayout {
@@ -160,14 +163,14 @@ export component StatusPill inherits Rectangle {
         spacing: 6px;
         Text {
             text: root.glyph;
-            color: root.fg;
+            color: root.solid ? Theme.on-accent : root.fg;
             font-size: 10px;
             vertical-alignment: center;
         }
 
         Text {
             text: root.text;
-            color: root.fg;
+            color: root.solid ? Theme.on-accent : root.fg;
             font-size: Theme.font-caption;
             font-weight: 600;
             vertical-alignment: center;
@@ -239,7 +242,7 @@ export component Segmented inherits Rectangle {
                 accessible-item-selected: i == root.current;
                 Text {
                     text: option;
-                    color: i == root.current ? Theme.text : Theme.text-secondary;
+                    color: i == root.current ? Theme.on-accent : Theme.text-secondary;
                     font-size: Theme.font-body;
                     font-weight: i == root.current ? 600 : 500;
                     horizontal-alignment: center;
@@ -288,7 +291,7 @@ component OptionList inherits Rectangle {
         for option[i] in root.options: Rectangle {
             height: root.row-height;
             border-radius: 4px;
-            background: i == root.current ? Theme.accent.with-alpha(0.28) : row-touch.has-hover ? Theme.elevated-hover : transparent;
+            background: i == root.current ? Theme.accent.with-alpha(0.14) : row-touch.has-hover ? Theme.elevated-hover : transparent;
             HorizontalLayout {
                 padding-left: 8px;
                 padding-right: 8px;
@@ -579,7 +582,7 @@ export component Toggle inherits Rectangle {
                     width: 16px;
                     height: 16px;
                     border-radius: 8px;
-                    background: Theme.text;
+                    background: root.checked ? Theme.on-accent : Theme.text;
                     animate x { duration: Theme.quick; }
                 }
             }
@@ -629,8 +632,37 @@ export component Toggle inherits Rectangle {
     }
 }
 
+// A − or + button inside NumberField.
+component StepButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> enabled: true;
+    callback clicked();
+    width: 28px;
+    border-radius: Theme.radius-s - 2px;
+    background: !root.enabled ? transparent
+        : touch.pressed ? Theme.border-strong
+        : touch.has-hover ? Theme.elevated-hover : transparent;
+    Text {
+        text: root.text;
+        color: root.enabled ? Theme.text-secondary : Theme.text-muted;
+        font-size: Theme.font-strong;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
 // Whole-number field with − / + buttons (Up/Down keys and the wheel also
-// step it).
+// step it). Drawn from the theme rather than the std SpinBox, which would
+// bring the widget style's own accent colour. Out-of-range typing is ignored
+// and the shown text snaps back when the field loses focus.
 export component NumberField inherits Rectangle {
     in-out property <int> value;
     in property <int> minimum;
@@ -642,17 +674,115 @@ export component NumberField inherits Rectangle {
     border-radius: Theme.radius-s;
     background: Theme.elevated;
     border-width: 1px;
-    border-color: spin.has-focus ? Theme.focus-ring : Theme.border;
-    spin := SpinBox {
-        width: 100%;
-        height: 100%;
-        value <=> root.value;
-        minimum: root.minimum;
-        maximum: root.maximum;
-        enabled: root.enabled;
-        horizontal-alignment: center;
-        edited(v) => {
+    border-color: input.has-focus ? Theme.focus-ring : Theme.border;
+    forward-focus: input;
+    accessible-role: AccessibleRole.spinbox;
+    accessible-enabled: root.enabled;
+    accessible-value: root.value;
+    accessible-value-minimum: root.minimum;
+    accessible-value-maximum: root.maximum;
+    accessible-value-step: 1;
+    accessible-action-increment => {
+        root.step(1);
+    }
+    accessible-action-decrement => {
+        root.step(-1);
+    }
+
+    function set-value(v: int) {
+        if (v >= root.minimum && v <= root.maximum && v != root.value) {
+            root.value = v;
             root.edited(v);
+        }
+    }
+
+    function show-value() {
+        input.text = root.value;
+    }
+
+    function step(delta: int) {
+        if (root.enabled) {
+            root.set-value(max(root.minimum, min(root.maximum, root.value + delta)));
+            root.show-value();
+        }
+    }
+
+    changed value => {
+        root.show-value();
+    }
+
+    TouchArea {
+        enabled: root.enabled;
+        scroll-event(event) => {
+            if (event.delta-y > 0) {
+                root.step(1);
+                return accept;
+            }
+            if (event.delta-y < 0) {
+                root.step(-1);
+                return accept;
+            }
+            return reject;
+        }
+    }
+
+    HorizontalLayout {
+        padding: 2px;
+        StepButton {
+            text: "-";
+            enabled: root.enabled && root.value > root.minimum;
+            clicked => {
+                root.step(-1);
+            }
+        }
+
+        input := TextInput {
+            horizontal-stretch: 1;
+            text: root.value;
+            enabled: root.enabled;
+            color: root.enabled ? Theme.text : Theme.text-muted;
+            font-size: Theme.font-body;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            single-line: true;
+            input-type: InputType.number;
+            selection-background-color: Theme.accent;
+            selection-foreground-color: Theme.on-accent;
+            accessible-role: none;
+            key-pressed(event) => {
+                if (event.text == Key.UpArrow) {
+                    root.step(1);
+                    return accept;
+                }
+                if (event.text == Key.DownArrow) {
+                    root.step(-1);
+                    return accept;
+                }
+                return reject;
+            }
+            accepted => {
+                root.show-value();
+            }
+            edited => {
+                if (self.text.is-float()) {
+                    root.set-value(self.text.to-float());
+                } else if (self.text != "") {
+                    root.show-value();
+                }
+            }
+            changed has-focus => {
+                if (!self.has-focus) {
+                    root.show-value();
+                }
+            }
+        }
+
+        StepButton {
+            text: "+";
+            enabled: root.enabled && root.value < root.maximum;
+            clicked => {
+                root.step(1);
+            }
         }
     }
 }

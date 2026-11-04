@@ -106,6 +106,7 @@ target picker and focus rules are implemented and tested on Xvfb
 | Quitting from the dialog stops engine and window | ✅ | verified on Xvfb (title-bar close and the Quit Pulse button) |
 | Start key from a mouse side button (press it over the key box, or pick Mouse4/Mouse5 from the list) | ✅ | Xvfb walkthrough (XTest button 8 over the key box); the "Key to press" list stays keyboard-only |
 | Escape closes the About box | ✅ | verified with window focus |
+| Black-and-white theme (soft red only for errors); number fields drawn from the theme so no widget-style accent shows | ✅ | screenshots on Xvfb: ready, clicking, switch on, dialog, inline error, text selection; number field +/−, typing, Enter, Up/Down, wheel and out-of-range typing checked against the saved config |
 | Software vs FemtoVG comparison | 🟡 | both measured idle on Xvfb ([benchmarks.md §6](benchmarks.md#6-ui-process-optional-separate)); real GPU not measured |
 | Typed key capture on non-US layouts | 🟡 | maps to US physical positions; the ▾ key list is exact |
 

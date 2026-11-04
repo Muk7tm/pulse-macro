@@ -1,26 +1,30 @@
-// Pulse design tokens: dark graphite surfaces, one teal accent,
+// Pulse design tokens: black and white. Neutral greys without tint, white
+// as the only accent (with black on top of it), soft red for errors only,
 // an 8 px spacing grid and uniform control heights.
 
 export global Theme {
     // Colors
-    out property <color> bg: #111827;
-    out property <color> surface: #1F2937;
-    out property <color> elevated: #263244;
-    out property <color> elevated-hover: #2E3B50;
-    out property <color> border: #334155;
-    out property <color> border-strong: #475569;
-    out property <color> text: #F8FAFC;
-    out property <color> text-secondary: #94A3B8;
-    out property <color> text-muted: #64748B;
-    out property <color> accent: #0D9488;
-    out property <color> accent-hover: #0F766E;
-    out property <color> accent-bright: #5EEAD4;
-    out property <color> danger: #DC2626;
-    out property <color> danger-hover: #B91C1C;
-    out property <color> error: #EF4444;
-    out property <color> warning: #F59E0B;
-    out property <color> success: #34D399;
-    out property <color> focus-ring: #5EEAD4;
+    out property <color> bg: #0A0A0A;
+    out property <color> surface: #141414;
+    out property <color> elevated: #1E1E1E;
+    out property <color> elevated-hover: #2A2A2A;
+    out property <color> border: #2C2C2C;
+    out property <color> border-strong: #4A4A4A;
+    out property <color> text: #FAFAFA;
+    out property <color> text-secondary: #A3A3A3;
+    out property <color> text-muted: #737373;
+    out property <color> accent: #FAFAFA;
+    out property <color> accent-hover: #D9D9D9;
+    out property <color> accent-bright: #FFFFFF;
+    // Text and knobs drawn on an accent background.
+    out property <color> on-accent: #0A0A0A;
+    // The Stop button: outlined in white rather than filled.
+    out property <color> danger: #141414;
+    out property <color> danger-hover: #2A2A2A;
+    out property <color> error: #F87171;
+    out property <color> warning: #E5E5E5;
+    out property <color> success: #FAFAFA;
+    out property <color> focus-ring: #FFFFFF;
 
     // Spacing, shape and sizes
     out property <length> gap-xs: 4px;
